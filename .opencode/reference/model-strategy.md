@@ -10,7 +10,7 @@ Maximize free/cheap models. Anthropic is last resort only.
 
 | Tier | Role | Provider/Model | Cost | Used By |
 |------|------|----------------|------|---------|
-| T0 | Planning (thinking) | `ollama-cloud/kimi-k2-thinking` → `cogito-2.1:671b` → `qwen3-max` → `claude-opus-4-5` | FREE→PAID | `/planning` dispatch |
+| T0 | Planning (codex-first) | `openai/gpt-5.3-codex` → `qwen3-max` → `qwen3.5-plus` → `claude-opus-4-5` | PAID→FREE→PAID | `/planning` dispatch |
 | T1 | Implementation | `bailian-coding-plan-test/qwen3.5-plus` (+ coder-next, coder-plus) | FREE | `/execute` dispatch |
 | T2 | First Validation | `zai-coding-plan/glm-5` | FREE | `/code-review`, `/code-loop` |
 | T3 | Second Validation | `ollama-cloud/deepseek-v3.2` | FREE | `/code-loop` second opinion |
@@ -18,7 +18,7 @@ Maximize free/cheap models. Anthropic is last resort only.
 | T5 | Final Review | `anthropic/claude-sonnet-4-6` | PAID (expensive) | `/final-review` last resort |
 
 **Orchestrator**: Claude Opus handles ONLY exploration, planning, orchestration, strategy.
-**Planning cascade**: `kimi-k2-thinking` (FREE) → `cogito-2.1:671b` (FREE) → `qwen3-max` (FREE) → `claude-opus-4-5` (PAID). Thinking models produce significantly better 700-1000 line plans.
+**Planning cascade**: `gpt-5.3-codex` (PAID) → `qwen3-max` (FREE) → `qwen3.5-plus` (FREE) → `claude-opus-4-5` (PAID). Codex-first per user policy — produces best quality 700-1000 line plans. ollama-cloud thinking models (kimi-k2-thinking, cogito-2.1) removed — they cannot make tool calls in agent mode.
 **Fallback**: If `bailian-coding-plan-test` 404s, use `zai-coding-plan/glm-4.7`.
 **Push cadence**: Push after every spec commit — do not batch to `/ship`.
 
@@ -35,7 +35,7 @@ Tools: `.opencode/tools/dispatch.ts`, `.opencode/tools/batch-dispatch.ts`
 | T1c (complex) | complex-codegen, complex-fix, research, architecture, library-comparison, pattern-scan | qwen3.5-plus | FREE |
 | T1d (long-ctx) | docs-lookup, long-context-review | kimi-k2.5 | FREE |
 | T1e (prose) | docs-generation, docstring-generation, changelog-generation | minimax-m2.5 | FREE |
-| T0 (thinking/planning) | planning | kimi-k2-thinking → cogito-2.1:671b → qwen3-max → claude-opus-4-5 | FREE→PAID |
+| T0 (codex-first planning) | planning | gpt-5.3-codex → qwen3-max → qwen3.5-plus → claude-opus-4-5 | PAID→FREE→PAID |
 | T1f (reasoning) | deep-plan-review, complex-reasoning | qwen3-max-2026-01-23 | FREE |
 | T2a (thinking) | thinking-review, first-validation, code-review, security-review, plan-review, logic-review | glm-5 | FREE |
 | T2b (flagship) | architecture-audit, design-review | glm-4.5 | FREE |
@@ -103,13 +103,14 @@ Three TypeScript tools in `.opencode/tools/` enable multi-model orchestration vi
 
 **Agent mode permissions**: read, edit, bash, glob, grep, list, todoread, todowrite. Denies: task (no recursive dispatch), external_directory, webfetch, websearch.
 
-**Agent mode works with ALL providers.** OpenCode's native infrastructure gives all providers (free and paid) the same capabilities: file read/write, grep, glob, bash, Archon MCP access. No fallback required.
+**Agent mode works with most providers.** OpenCode's native infrastructure gives providers the same capabilities: file read/write, grep, glob, bash, Archon MCP access. **Exception**: Some `ollama-cloud` models (kimi-k2-thinking, cogito-2.1) output raw tool call tokens as literal text instead of making actual tool calls — they CANNOT be used in agent or command mode. Confirmed working in agent mode: all `bailian-coding-plan-test` models, all `zai-coding-plan` models, `anthropic`, `openai`.
 
-**Two dispatch modes:**
+**Three dispatch modes:**
 | Mode | Tool Access | Providers | Use For |
 |------|------------|-----------|---------|
 | `text` (default) | None | All | Reviews, opinions, analysis |
-| `agent` | Full (native agent infrastructure) | All (free and paid via OpenCode native tools) | Implementation tasks for all providers |
+| `agent` | Full (native agent infrastructure) | Most (except some ollama-cloud thinking models) | Implementation tasks, codebase navigation |
+| `command` | Full (slash command execution) | Most (except some ollama-cloud thinking models) | Running /planning, /execute, /code-review, /commit |
 
 **Agent mode example (any provider):**
 ```
@@ -120,6 +121,17 @@ dispatch({ provider: "bailian-coding-plan-test", model: "qwen3.5-plus", mode: "a
 ```
 dispatch({ taskType: "thinking-review", prompt: "Review this code for bugs: ..." })
 ```
+
+**Sequential dispatch (same session):**
+For multi-step workflows (e.g., `/prime` then `/planning`), use the `sessionId` parameter
+to send subsequent dispatches to an existing session:
+```
+// Step 1: Prime the session
+result1 = dispatch({ mode: "command", command: "prime", prompt: "", taskType: "planning" })
+// Step 2: Planning in same session (extract sessionId from result1)
+result2 = dispatch({ mode: "command", command: "planning", prompt: "{spec} --auto-approve", taskType: "planning", sessionId: "{id from result1}" })
+```
+The session accumulates context across calls. The T0 cascade resolves once on the first call.
 
 ---
 

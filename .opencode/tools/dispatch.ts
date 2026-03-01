@@ -100,13 +100,16 @@ const TASK_ROUTES: Record<string, ModelRoute | CascadeRoute> = {
   "docstring-generation": { provider: "bailian-coding-plan-test", model: "minimax-m2.5", label: "MINIMAX-M2.5" },
   "changelog-generation": { provider: "bailian-coding-plan-test", model: "minimax-m2.5", label: "MINIMAX-M2.5" },
 
-  // ── T0: Planning (Cascade: FREE → PAID) ──
+  // ── T0: Planning (Cascade: CODEX → FREE → PAID) ──
+  // NOTE: ollama-cloud models (kimi-k2-thinking, cogito-2.1) removed — they output
+  // raw tool call tokens in agent mode instead of making actual tool calls.
+  // Codex-first per user policy; qwen3-max and qwen3.5-plus confirmed working.
   "planning": {
     type: "cascade",
     models: [
-      { provider: "ollama-cloud", model: "kimi-k2-thinking", label: "KIMI-K2-THINKING" },
-      { provider: "ollama-cloud", model: "cogito-2.1:671b", label: "COGITO-2.1" },
+      { provider: "openai", model: "gpt-5.3-codex", label: "GPT-5.3-CODEX" },
       { provider: "bailian-coding-plan-test", model: "qwen3-max-2026-01-23", label: "QWEN3-MAX" },
+      { provider: "bailian-coding-plan-test", model: "qwen3.5-plus", label: "QWEN3.5-PLUS" },
       { provider: "anthropic", model: "claude-opus-4-5", label: "CLAUDE-OPUS-4-5" },
     ],
   },
@@ -503,6 +506,37 @@ function resolveRoute(
 }
 
 // ============================================================================
+// CASCADE RESOLUTION (resolve cascade to single model for sequential use)
+// ============================================================================
+
+// Resolves a cascade to a single working ModelRoute by trying each model
+// with a quick text ping. Used when you need one model for multiple sequential
+// steps (e.g., /prime then /planning in the same session).
+//
+// Returns the first model that responds, or null if all fail.
+async function resolveCascadeToModel(
+  cascade: CascadeRoute,
+  sessionId: string,
+): Promise<{ model: ModelRoute; attempts: number } | null> {
+  for (let i = 0; i < cascade.models.length; i++) {
+    const route = cascade.models[i]
+    try {
+      // Quick text ping — "respond with OK" to test if model is reachable
+      const text = await dispatchText(
+        sessionId, route.provider, route.model,
+        "Respond with exactly: OK", 15_000, // 15s timeout for ping
+      )
+      if (text) {
+        return { model: route, attempts: i + 1 }
+      }
+    } catch {
+      // Model failed — try next
+    }
+  }
+  return null
+}
+
+// ============================================================================
 // SESSION ARCHIVING (mirrors council.ts)
 // ============================================================================
 
@@ -570,7 +604,9 @@ export default tool({
     "(implementation, planning, execution — model follows the same PIV loop)\n" +
     "• command: dispatch a slash command directly to a model " +
     "(e.g., /planning, /execute, /code-review, /commit)\n\n" +
-    "Use taskType for auto-routing or specify provider/model explicitly.",
+    "Use taskType for auto-routing or specify provider/model explicitly.\n\n" +
+    "For sequential dispatch (e.g., /prime then /planning in the same session),\n" +
+    "call dispatch once to get a sessionId, then pass that sessionId in subsequent calls.",
 
   args: {
     prompt: tool.schema
@@ -643,6 +679,17 @@ export default tool({
         "Short description for the session title (shown in OpenCode UI). " +
         "Defaults to taskType or 'Dispatch task'.",
       ),
+
+    sessionId: tool.schema
+      .string()
+      .optional()
+      .describe(
+        "Existing session ID to send to (skips session creation). " +
+        "Use this for sequential dispatch — send /prime to a session, then " +
+        "/planning to the SAME session so context carries over. " +
+        "Get a session ID by calling dispatch once (it returns sessionId in output), " +
+        "then pass that ID in subsequent calls.",
+      ),
   },
 
   async execute(args, context) {
@@ -656,14 +703,14 @@ export default tool({
 
     // Planning and execution sessions are long-running (20-60+ min).
     // Override to no-timeout so AbortSignal doesn't kill them.
-    if (mode === "agent" && args.taskType && NO_TIMEOUT_TASK_TYPES.has(args.taskType)) {
+    if ((mode === "agent" || mode === "command") && args.taskType && NO_TIMEOUT_TASK_TYPES.has(args.taskType)) {
       defaultTimeout = AGENT_SESSION_NO_TIMEOUT
     }
 
     const timeoutMs = args.timeout ?? defaultTimeout
 
     // ── 1. Validate inputs ──
-    if (!args.prompt) {
+    if (args.prompt == null) {
       return "# Dispatch Error\n\nNo prompt provided."
     }
     if (!args.taskType && !args.provider && !args.model) {
@@ -704,13 +751,20 @@ export default tool({
       )
     }
 
-    // ── 4. Create session ──
+    // ── 4. Create or reuse session ──
     const isCascade = "type" in resolved.route && resolved.route.type === "cascade"
     const routeLabel = isCascade ? "CASCADE" : (resolved.route as ModelRoute).label
-    const sessionTitle = `Dispatch: [${routeLabel}] ${taskDescription} (${mode})`
-    const sessionId = await createSession(sessionTitle)
-    if (!sessionId) {
-      return "# Dispatch Error\n\nFailed to create session."
+    let sessionId: string
+    if (args.sessionId) {
+      // Reuse existing session — for sequential dispatch (e.g., /prime then /planning)
+      sessionId = args.sessionId
+    } else {
+      const sessionTitle = `Dispatch: [${routeLabel}] ${taskDescription} (${mode})`
+      const newSessionId = await createSession(sessionTitle)
+      if (!newSessionId) {
+        return "# Dispatch Error\n\nFailed to create session."
+      }
+      sessionId = newSessionId
     }
 
     // ── 5. Dispatch ──
@@ -718,16 +772,56 @@ export default tool({
     let result: DispatchResult | null = null
 
     if (isCascade) {
-      result = await dispatchCascade(
-        sessionId,
-        resolved.route as CascadeRoute,
-        args.prompt,
-        mode,
-        taskDescription,
-        args.command,
-        args.prompt, // For command mode, prompt = command arguments
-        args.taskType,
-      )
+      // If reusing a session, resolve cascade to single model first
+      // so all messages in the session use the same model.
+      if (args.sessionId) {
+        const resolved_model = await resolveCascadeToModel(
+          resolved.route as CascadeRoute, sessionId,
+        )
+        if (resolved_model) {
+          const route = resolved_model.model
+          let text: string | null = null
+          if (mode === "command" && args.command) {
+            text = await dispatchCommand(
+              sessionId, route.provider, route.model,
+              args.command, args.prompt, timeoutMs,
+            )
+          } else if (mode === "agent") {
+            text = await dispatchAgent(
+              sessionId, route.provider, route.model,
+              args.prompt, taskDescription, timeoutMs,
+            )
+          } else {
+            text = await dispatchText(
+              sessionId, route.provider, route.model,
+              args.prompt, timeoutMs,
+            )
+          }
+          if (text) {
+            result = {
+              text,
+              provider: route.provider,
+              model: route.model,
+              label: route.label,
+              mode,
+              latencyMs: Date.now() - start,
+              sessionId,
+              cascadeAttempts: resolved_model.attempts,
+            }
+          }
+        }
+      } else {
+        result = await dispatchCascade(
+          sessionId,
+          resolved.route as CascadeRoute,
+          args.prompt,
+          mode,
+          taskDescription,
+          args.command,
+          args.prompt, // For command mode, prompt = command arguments
+          args.taskType,
+        )
+      }
     } else {
       const route = resolved.route as ModelRoute
       let text: string | null = null
@@ -816,6 +910,7 @@ export default tool({
       `**Route**: ${resolved.source}`,
       `**Latency**: ${(result.latencyMs / 1000).toFixed(1)}s`,
       `**Session**: ${result.sessionId}`,
+      `**Session ID**: \`${result.sessionId}\``,
     ]
     if (result.cascadeAttempts) {
       meta.push(`**Cascade**: attempt ${result.cascadeAttempts}/${(resolved.route as CascadeRoute).models.length}`)

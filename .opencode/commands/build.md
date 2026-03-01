@@ -212,23 +212,69 @@ Print progress dashboard:
 
 4. **Write or dispatch plan:**
 
-   **If dispatch available:**
+   **If dispatch available — use sequential dispatch (two calls, same session):**
+
+   First, gather the spec context to pass inline:
    ```
-   dispatch({
-     mode: "agent",
-     prompt: "Run /prime first. Then run /planning {spec-id} {spec-name} --auto-approve ...",
+   specContext = "Spec: {spec-id} {spec-name} ({depth})\n" +
+     "Description: {spec description from BUILD_ORDER}\n" +
+     "Depends: {depends field}\n" +
+     "Touches: {touches field}\n" +
+     "Acceptance: {acceptance criteria}\n" +
+     "Patterns from prior specs: {patterns from build-state.json}\n" +
+     "Pillar: {pillar name and gate criteria from PILLARS.md}"
+   ```
+
+   Then dispatch sequentially — `/prime` first to load context, then `/planning` with full spec details:
+
+   **Call 1: Prime the session**
+   ```
+   result1 = dispatch({
+     mode: "command",
+     command: "prime",
+     prompt: "",
      taskType: "planning",
+     description: "Prime for {spec-name}",
+   })
+   // Extract from result1 output:
+   //   **Session ID**: `{id}`        → sessionId
+   //   **Model**: LABEL (`prov/mod`) → provider, model
+   sessionId = extractSessionId(result1)
+   provider = extractProvider(result1)   // e.g., "bailian-coding-plan-test"
+   model = extractModel(result1)         // e.g., "qwen3-max-2026-01-23"
+   ```
+
+   **Call 2: Run planning in the SAME session (explicit model — no cascade)**
+   ```
+   result2 = dispatch({
+     mode: "command",
+     command: "planning",
+     prompt: "{spec-name} --auto-approve\n\nSpec Context:\n{specContext}",
+     provider: provider,   // from Call 1 — ensures same model handles both commands
+     model: model,         // from Call 1 — bypasses cascade (no redundant ping)
+     sessionId: sessionId, // from Call 1 — reuses the primed session
+     description: "Plan {spec-name}",
    })
    ```
+
+   **Why explicit provider/model**: Call 1 already resolved the cascade and found a working
+   model. Passing it explicitly in Call 2 avoids a redundant cascade resolution ping,
+   eliminates the risk of model mismatch, and saves ~15s latency.
+
    The `--auto-approve` flag skips the interactive approval gate in `/planning` Phase 4 — the spec was already approved via BUILD_ORDER.
-   Use a T1 thinking model for best results (reasoning produces better plans and task briefs).
+
+   **Why sequential dispatch**: A single prompt with "Run /prime first, then /planning..." is unreliable — models skip steps or truncate. Two explicit command dispatches with shared sessionId ensures both commands run in order with accumulated context. Call 2 passes the exact provider/model from Call 1 to guarantee the same model handles the full session.
+
+   **Why spec context inline**: Prior testing showed plan quality drops when the `/planning` model must discover spec details itself. Passing acceptance criteria, files touched, and patterns inline ensures 700+ line plans.
 
    **If dispatch unavailable:**
    Write the plan directly using the `/planning` methodology. The primary model gathers context, runs discovery, and produces the structured plan inline.
 
-   **If dispatch fails:**
-   - Fall back to the "If dispatch unavailable" path (write the plan inline).
+   **If dispatch fails (either call):**
+   - If Call 1 (`/prime`) fails: Fall back to inline planning — the session can't be primed.
+   - If Call 2 (`/planning`) fails: Retry once with a new session (Call 1 + Call 2). If retry also fails, fall back to inline planning.
    - Log: "Dispatch failed for planning {spec-name} — falling back to inline planning."
+   - Inline planning uses the same spec context gathered in step 1 — nothing is lost.
 
    - `plan.md` MUST be 700-1000 lines — this is a hard requirement
    - Each `task-{N}.md` brief MUST be self-contained and executable without reading `plan.md`
@@ -244,7 +290,11 @@ Print progress dashboard:
 #### Master + Sub-Plan Mode (Exception)
 
 4. **Write or dispatch master plan:**
-   Same as above but in master mode. The master plan defines phases, task groupings, phase gates.
+   Same sequential dispatch pattern as Task Brief Mode above, but pass `--master` flag in the planning prompt:
+   ```
+   prompt: "{spec-name} --auto-approve --master\n\nSpec Context:\n{specContext}"
+   ```
+   The master plan defines phases, task groupings, phase gates.
    - Master plan MUST be ~400-600 lines
    - Each sub-plan MUST be 700-1000 lines
    - Save to: `.agents/features/{spec-name}/plan-master.md` + `.agents/features/{spec-name}/plan-phase-{N}.md`

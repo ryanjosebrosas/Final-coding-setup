@@ -9,7 +9,7 @@ Work WITH the user to explore, question, and discover the right approach for a s
 ## Feature: $ARGUMENTS
 
 **Flags** (parsed from `$ARGUMENTS`):
-- `--auto-approve` (optional): Skip Phase 4 interactive approval gate. The plan preview is still generated and logged, but approval is automatic via self-review checklist instead of user prompt. Used by `/build` when dispatching to `/planning` for autonomous operation.
+- `--auto-approve` (optional): **Full autonomous mode.** Skip ALL interactive questions in Phases 1-3, skip all checkpoints, and auto-approve in Phase 4 via self-review checklist. The model reads context, runs research, makes decisions, and writes the plan without any user interaction. Used by `/build` when dispatching to `/planning` for autonomous operation.
 
 When flags are present in `$ARGUMENTS`, strip them before parsing the remaining value as the feature name or spec ID.
 
@@ -36,9 +36,16 @@ Used per-spec inside the `/build` loop, or standalone for manual planning.
 
 ## Phase 1: Understand (Discovery Conversation)
 
-Start by understanding what the user wants to build. This is interactive:
+Start by understanding what the user wants to build. This is interactive — **UNLESS `--auto-approve` is set**, in which case skip ALL interactive questions in Phases 1-3 and proceed directly through each phase without waiting for user input. The spec context is fully specified in the arguments; there is nothing to discover interactively.
 
-### If called from `/build` with a spec:
+### If `--auto-approve` is set:
+- Read the spec from `.agents/specs/BUILD_ORDER.md` (or use inline spec context from arguments)
+- Read `.agents/specs/build-state.json` for context from prior specs
+- Read pillar context, PRD, and codebase files (same as below)
+- **Do NOT ask questions. Do NOT wait for user input. Summarize briefly, then proceed directly to Phase 2.**
+- Log: "Auto-approve mode — skipping interactive discovery. Spec context provided."
+
+### If called from `/build` with a spec (no `--auto-approve`):
 - Read the spec from `.agents/specs/BUILD_ORDER.md`
 - Read `.agents/specs/build-state.json` for context from prior specs
 - Summarize: "This spec is about {purpose}. It depends on {deps} which are done. Here's what I think we need to build..."
@@ -81,6 +88,7 @@ After each major discovery, confirm:
 - "Here's what I'm seeing — does this match your intent?"
 - "I think we should approach it like X because Y. Sound right?"
 - Keep confirmations SHORT — one sentence, not paragraphs.
+- **If `--auto-approve`**: Skip ALL checkpoints in all phases. Log findings and proceed. Do not ask questions or wait for user input.
 
 ---
 
@@ -211,6 +219,7 @@ Unknowns (explicit gaps):
 ```
 
 **Checkpoint**: Share the synthesis with the user. "Here's what I'm working with — anything missing or wrong?"
+**If `--auto-approve`**: Skip the checkpoint question. Log the synthesis and proceed directly to 3b.
 
 ### 3b. Analyze
 
@@ -256,9 +265,11 @@ Interface Boundaries:
 ```
 
 **Checkpoint**: If risks are HIGH, flag them: "I see a significant risk with {X}. Want to discuss mitigation before I proceed?"
+**If `--auto-approve`**: Skip the checkpoint. Log the analysis and proceed directly to 3c. For HIGH risks, log them but continue — autonomous mode accepts documented risks.
 
 For non-trivial architecture decisions where multiple approaches are viable, suggest council:
 - "This has {N} valid approaches with real tradeoffs. Want to run `/council` to get multi-model input before I decide?"
+- **If `--auto-approve`**: Skip council suggestion. Pick the approach that best matches established project patterns.
 
 ### 3c. Decide
 
@@ -297,6 +308,7 @@ Key tradeoff accepted:
 ```
 
 **Checkpoint**: Confirm the direction — "Lock in this approach? Or should we explore {specific alternative} more?"
+**If `--auto-approve`**: Skip the checkpoint. Lock in the approach and proceed directly to 3d.
 
 ### 3d. Decompose
 
@@ -345,6 +357,7 @@ Confidence: {X}/10
 ```
 
 **Checkpoint**: "Here's the task breakdown — {N} tasks in this order. The key dependency is {X}. Does this look right?"
+**If `--auto-approve`**: Skip the checkpoint. Proceed directly to Phase 4.
 
 ### Phase 3 Output Summary
 

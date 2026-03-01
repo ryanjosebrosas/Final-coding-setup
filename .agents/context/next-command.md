@@ -1,9 +1,9 @@
 # Pipeline Handoff
 <!-- Auto-updated by pipeline commands. Read by /prime. Do not edit manually. -->
 
-- **Last Command**: /execute
-- **Feature**: dispatch-agent-response-fix
-- **Next Command**: /commit
-- **Task Progress**: 1/1 complete
-- **Timestamp**: 2026-03-02T13:00:00Z
-- **Status**: ready-to-commit
+- **Last Command**: /planning
+- **Feature**: string-reverse
+- **Next Command**: /execute .agents/features/string-reverse/plan.md
+- **Task Progress**: 0/1 complete
+- **Timestamp**: 2026-03-02T20:30:00Z
+- **Status**: awaiting-execution
