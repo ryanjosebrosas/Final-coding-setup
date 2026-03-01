@@ -267,6 +267,10 @@ Print progress dashboard:
 
    **Why spec context inline**: Prior testing showed plan quality drops when the `/planning` model must discover spec details itself. Passing acceptance criteria, files touched, and patterns inline ensures 700+ line plans.
 
+   **If `sessionId` is not a visible dispatch parameter:**
+   The MCP tool schema is stale (cached at session start before sessionId was added to dispatch.ts).
+   Fix: restart `opencode serve`, then start a NEW Claude session — the fresh session picks up the updated tool schema with `sessionId`. The current session cannot use sessionId regardless of what's in dispatch.ts.
+
    **If dispatch unavailable:**
    Write the plan directly using the `/planning` methodology. The primary model gathers context, runs discovery, and produces the structured plan inline.
 
@@ -391,23 +395,51 @@ This is the rollback point. If implementation fails, `git reset --hard HEAD` to 
 
 1. **Dispatch or execute one brief:**
 
-   **If dispatch available:**
+   **If dispatch available — use sequential dispatch (two calls, same session):**
+
+   **Call 1: Prime the session**
    ```
-   dispatch({
-     mode: "agent",
-     prompt: "Run /prime first. Then run /execute .agents/features/{spec-name}/plan.md",
+   result1 = dispatch({
+     mode: "command",
+     command: "prime",
+     prompt: " ",
      taskType: "execution",
-     timeout: 900,
+     description: "Prime for {spec-name} execution",
+   })
+   // Extract from result1 output:
+   //   **Session ID**: `{id}`        → sessionId
+   //   **Model**: LABEL (`prov/mod`) → provider, model
+   sessionId = extractSessionId(result1)
+   provider = extractProvider(result1)
+   model = extractModel(result1)
+   ```
+
+   **Call 2: Execute in the SAME session (explicit model — no routing)**
+   ```
+   result2 = dispatch({
+     mode: "command",
+     command: "execute",
+     prompt: ".agents/features/{spec-name}/plan.md",
+     provider: provider,   // from Call 1 — ensures same model handles both
+     model: model,         // from Call 1 — bypasses routing table
+     sessionId: sessionId, // from Call 1 — reuses the primed session
+     description: "Execute {spec-name}",
+     timeout: 0,           // no timeout — execution runs until done
    })
    ```
+
+   **Why two calls**: A single prompt ("Run /prime then /execute...") is unreliable — models skip steps. Two explicit command dispatches with shared sessionId ensures both run in order with accumulated context.
+
+   **If `sessionId` is not a visible dispatch parameter:**
+   The MCP tool schema is stale. Fix: restart `opencode serve` + start a new Claude session. Fall back to inline execution for the current session.
 
    **If dispatch unavailable:**
    Run `/execute .agents/features/{spec-name}/plan.md` inline. `/execute` auto-detects the next undone brief by scanning for `task-{N}.done.md` files.
 
-   **If dispatch fails or times out:**
-   - Fall back to the "If dispatch unavailable" path (run `/execute` inline).
-   - Log: "Dispatch timed out for execution — falling back to inline execution."
-   - If inline execution also fails: STOP, report the error.
+   **If dispatch fails (either call):**
+   - If Call 1 (`/prime`) fails: Fall back to inline execution.
+   - If Call 2 (`/execute`) fails: Retry once with a new session (Call 1 + Call 2). If retry also fails, fall back to inline execution.
+   - Log: "Dispatch failed for execution {spec-name} — falling back to inline execution."
 
 2. **Check completion:**
    - If `.agents/features/{spec-name}/plan.done.md` exists → ALL briefs complete. Exit loop → Step 6.
@@ -426,23 +458,46 @@ This is the rollback point. If implementation fails, `git reset --hard HEAD` to 
 
 1. **Dispatch or execute one phase:**
 
-   **If dispatch available:**
+   **If dispatch available — use sequential dispatch (two calls, same session):**
+
+   **Call 1: Prime the session**
    ```
-   dispatch({
-     mode: "agent",
-     prompt: "Run /prime first. Then run /execute .agents/features/{spec-name}/plan-master.md",
+   result1 = dispatch({
+     mode: "command",
+     command: "prime",
+     prompt: " ",
      taskType: "execution",
-     timeout: 900,
+     description: "Prime for {spec-name} phase execution",
+   })
+   sessionId = extractSessionId(result1)
+   provider = extractProvider(result1)
+   model = extractModel(result1)
+   ```
+
+   **Call 2: Execute in the SAME session (explicit model — no routing)**
+   ```
+   result2 = dispatch({
+     mode: "command",
+     command: "execute",
+     prompt: ".agents/features/{spec-name}/plan-master.md",
+     provider: provider,
+     model: model,
+     sessionId: sessionId,
+     description: "Execute {spec-name} phase",
+     timeout: 0,
    })
    ```
+
+   **If `sessionId` is not a visible dispatch parameter:**
+   The MCP tool schema is stale. Fix: restart `opencode serve` + start a new Claude session. Fall back to inline execution for the current session.
 
    **If dispatch unavailable:**
    Run `/execute .agents/features/{spec-name}/plan-master.md` inline. `/execute` auto-detects the next undone phase by scanning for `plan-phase-{N}.done.md` files.
 
-   **If dispatch fails or times out:**
-   - Fall back to the "If dispatch unavailable" path (run `/execute` inline).
-   - Log: "Dispatch timed out for execution — falling back to inline execution."
-   - If inline execution also fails: STOP, report the error.
+   **If dispatch fails (either call):**
+   - If Call 1 (`/prime`) fails: Fall back to inline execution.
+   - If Call 2 (`/execute`) fails: Retry once with a new session (Call 1 + Call 2). If retry also fails, fall back to inline execution.
+   - Log: "Dispatch failed for execution {spec-name} — falling back to inline execution."
 
 2. **Check completion:**
    - If `.agents/features/{spec-name}/plan-master.done.md` exists → ALL phases complete. Exit loop → Step 6.

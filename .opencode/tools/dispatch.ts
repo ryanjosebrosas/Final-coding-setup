@@ -403,7 +403,7 @@ async function dispatchCommand(
   timeoutMs: number,
 ): Promise<string | null> {
   try {
-    const response = await fetch(`${OPENCODE_URL}/session/${sessionId}/command`, {
+    const fetchOptions: RequestInit = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -411,11 +411,22 @@ async function dispatchCommand(
         arguments: commandArgs,
         model: `${provider}/${model}`,
       }),
-      signal: AbortSignal.timeout(timeoutMs),
-    })
+    }
+    // timeoutMs === 0 means no timeout — execution sessions run until completion.
+    if (timeoutMs > 0) {
+      fetchOptions.signal = AbortSignal.timeout(timeoutMs)
+    }
+    const response = await fetch(`${OPENCODE_URL}/session/${sessionId}/command`, fetchOptions)
     if (!response.ok) return null
     const data = await response.json()
-    return extractTextFromParts(data)
+    // Command responses have multi-step structures (step-start, reasoning, tool, text, step-finish).
+    // Try broad extraction first (covers text, tool output, reasoning parts).
+    const content = extractContentFromParts(data)
+    if (content) return content
+    // If direct extraction fails, scan session messages as fallback.
+    // This handles cases where the command API returns a different structure
+    // than expected (e.g., array of messages, nested response).
+    return await getSessionLastResponse(sessionId)
   } catch {
     return null
   }
@@ -606,7 +617,10 @@ export default tool({
     "(e.g., /planning, /execute, /code-review, /commit)\n\n" +
     "Use taskType for auto-routing or specify provider/model explicitly.\n\n" +
     "For sequential dispatch (e.g., /prime then /planning in the same session),\n" +
-    "call dispatch once to get a sessionId, then pass that sessionId in subsequent calls.",
+    "call dispatch once to get a sessionId, then pass that sessionId in subsequent calls.\n\n" +
+    "NOTE: If sessionId does not appear as a parameter in this tool's schema, the MCP\n" +
+    "tool definition is stale (cached from before sessionId was added). Fix: restart\n" +
+    "opencode serve and start a new Claude session to pick up the updated schema.",
 
   args: {
     prompt: tool.schema
