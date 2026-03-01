@@ -24,7 +24,9 @@ Complex features (15+ tasks, 4+ phases): `/planning` auto-decomposes into sub-pl
 ### Implementation
 - Fresh conversation → `/execute .agents/features/{feature}/plan.md`
 - Trust but verify
-- Never execute implementation work without a `/planning` artifact in `.agents/features/`
+- **MANDATORY**: Never execute implementation work without a `/planning` artifact in `.agents/features/`
+- **MANDATORY**: The plan MUST be reviewed and approved by the user before `/execute` runs. No silent auto-approval. Present the plan, wait for explicit user approval, then proceed.
+- If tempted to skip planning for a "simple" change — STOP. Run `/planning` anyway. The process exists to catch what you think is simple but isn't.
 
 ### Validation
 - AI: tests + linting. Human: code review + manual testing.

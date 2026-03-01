@@ -214,6 +214,34 @@ function extractTextFromParts(data: any): string | null {
   return text || null
 }
 
+// Broader extraction for agent sessions where the final output may not be
+// in TextPart entries. Checks: TextPart → ToolPart (completed) → ReasoningPart.
+// Used by getSessionLastResponse() for child session message scanning.
+function extractContentFromParts(data: any): string | null {
+  // Priority 1: TextPart — the standard output
+  const textParts = data?.parts?.filter((p: any) => p.type === "text") || []
+  const text = textParts.map((p: any) => p.text).join("\n")
+  if (text) return text
+
+  // Priority 2: Completed ToolPart outputs — tool calls that produced results
+  const toolParts = data?.parts?.filter(
+    (p: any) => p.type === "tool" && p.state?.status === "completed" && p.state?.output
+  ) || []
+  if (toolParts.length > 0) {
+    const toolOutput = toolParts.map((p: any) => p.state.output).join("\n")
+    if (toolOutput) return toolOutput
+  }
+
+  // Priority 3: ReasoningPart — model's reasoning text (some providers expose this)
+  const reasoningParts = data?.parts?.filter((p: any) => p.type === "reasoning" && p.text) || []
+  if (reasoningParts.length > 0) {
+    const reasoning = reasoningParts.map((p: any) => p.text).join("\n")
+    if (reasoning) return reasoning
+  }
+
+  return null
+}
+
 // ============================================================================
 // TEXT MODE — prompt in, text out (no tool access)
 // ============================================================================
@@ -292,6 +320,11 @@ async function dispatchAgent(
     const response = await fetch(`${OPENCODE_URL}/session/${sessionId}/message`, fetchOptions)
     if (!response.ok) return null
     const data = await response.json()
+    // Check for error in the response
+    if (data?.info?.error) {
+      const err = data.info.error
+      return `[Agent error: ${err.type || "unknown"}] ${err.message || ""}`
+    }
     // Try extracting text directly from response parts
     const text = extractTextFromParts(data)
     if (text) return text
@@ -309,17 +342,35 @@ async function dispatchAgent(
 async function getSessionLastResponse(sessionId: string): Promise<string | null> {
   try {
     const response = await fetch(
-      `${OPENCODE_URL}/session/${sessionId}/message?limit=5`,
-      { signal: AbortSignal.timeout(10_000) },
+      `${OPENCODE_URL}/session/${sessionId}/message?limit=20`,
+      { signal: AbortSignal.timeout(30_000) },
     )
     if (!response.ok) return null
     const messages = await response.json()
     if (!Array.isArray(messages) || messages.length === 0) return null
-    // Get the last assistant message with text content
+
+    // Pass 1: Walk backward looking for TextPart content (most common case)
     for (let i = messages.length - 1; i >= 0; i--) {
       const text = extractTextFromParts(messages[i])
       if (text) return text
     }
+
+    // Pass 2: Walk backward looking for any content (ToolPart output, ReasoningPart)
+    // Agent sessions often end with tool calls, so the final text may be in these parts
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const content = extractContentFromParts(messages[i])
+      if (content) return content
+    }
+
+    // Pass 3: Check if any message has an error we should surface
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg?.info?.error) {
+        const err = msg.info.error
+        return `[Session error: ${err.type || "unknown"}] ${err.message || ""}`
+      }
+    }
+
     return null
   } catch {
     return null
@@ -581,7 +632,8 @@ export default tool({
       .optional()
       .describe(
         "Custom timeout in ms. Defaults: text=120000, agent=300000, command=600000. " +
-        "For long tasks: 900000 (15min) for planning/execution.",
+        "Planning/execution tasks use no-timeout automatically (taskType routing). " +
+        "Set to 0 explicitly to disable timeout for any task.",
       ),
 
     description: tool.schema

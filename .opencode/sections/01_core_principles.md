@@ -12,6 +12,15 @@
 
 **COUNCIL DISCIPLINE — No Spam** — Max 1 council dispatch per user question. Cap at 10 models. Never re-run unless user explicitly requests. For brainstorming use 4-5 models; for architecture decisions up to 10. Write dispatch script once, run once, read output.
 
+**HARD RULE — /planning Before ALL Implementation** — EVERY feature, fix, or non-trivial change MUST go through `/planning` first. The plan MUST be reviewed and approved by the user before ANY implementation begins. No exceptions. No "quick fixes." No "I'll just do this one thing." The sequence is ALWAYS: `/planning` → user reviews plan → user approves → `/execute`. Jumping straight to code is a VIOLATION even if the task seems simple. If you catch yourself about to edit a file without an approved plan in `.agents/features/`, STOP and run `/planning` first.
+
+**Violation examples** (all FORBIDDEN):
+- Starting to code before running `/planning`
+- Running `/planning` and proceeding to `/execute` without user review/approval
+- Saying "this is simple enough to do inline" and skipping the plan
+- Creating a todo list of code changes and implementing them directly
+- Using Edit/Write tools on source files without an approved plan artifact
+
 **YAGNI** — Only implement what's needed. No premature optimization.
 **KISS** — Prefer simple, readable solutions over clever abstractions.
 **DRY** — Extract common patterns; balance with YAGNI.
