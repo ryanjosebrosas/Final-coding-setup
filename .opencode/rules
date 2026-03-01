@@ -1,0 +1,66 @@
+
+## Global Rules for AI Agents
+
+### Golden Rule: Validate Before Every Commit
+
+Run the project's configured validation pyramid before every commit:
+1. Lint check (L1)
+2. Type check (L2)
+3. Test suite (L3)
+
+Exit 0 = safe to commit. Any failure = fix and re-run.
+
+### Commit Hygiene
+
+- Use conventional commit format: `type(scope): description`
+- Types: feat, fix, refactor, docs, test, chore, perf, style, plan
+- Keep commits atomic — one logical change per commit
+- Never commit secrets, API keys, or credentials
+- Never use `git add -A` — scope to relevant files
+
+### Plan-Before-Execute
+
+- Never implement code changes without a plan artifact in `.agents/plans/`
+- Plans must be 700-1000 lines (hard requirement)
+- Plans must include copy-pasteable code samples, not pseudocode
+- Plans must include validation commands for every task
+
+### Review-Before-Commit
+
+- Every code change must pass through `/code-review` or the `/build` review pipeline
+- Critical findings block commit — no exceptions
+- Security-critical code always gets highest-tier review available
+
+### State Management
+
+- `.agents/specs/build-state.json` is the cross-session state bridge — always read it at session start
+- `memory.md` captures lessons and gotchas — update it after significant work
+- `.agents/specs/BUILD_ORDER.md` checkboxes are the source of truth for spec completion
+- `.agents/specs/PILLARS.md` gates enforce sequential pillar completion
+
+### File Organization
+
+- Plans go in `.agents/plans/`
+- Reviews go in `.agents/reviews/`
+- Reports go in `.agents/reports/`
+- Build specs go in `.agents/specs/`
+- Completed artifacts get `.done.md` suffix
+- `memory.md` stays at project root
+
+### Bug Scanning (if UBS available)
+
+If UBS (Ultimate Bug Scanner) is installed:
+```bash
+ubs <changed-files>    # Before every commit
+ubs --ci .             # Before PR
+```
+
+Parse output: `file:line:col` → location | Fix suggestion → how to fix | Exit 0/1 → pass/fail
+
+### Anti-Patterns
+
+- Do not skip steps in the build pipeline — every step exists for a reason
+- Do not fix symptoms — fix root causes
+- Do not ignore validation failures — classify and resolve
+- Do not scope-creep during execution — stay within the plan's slice
+- Do not guess file paths or import statements — verify by reading the codebase
