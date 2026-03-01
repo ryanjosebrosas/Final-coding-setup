@@ -1,10 +1,21 @@
 {
-  "lastSpec": null,
-  "completed": [],
+  "lastSpec": "string-reverse",
+  "completed": ["P1-01"],
   "currentPillar": 1,
   "totalSpecs": 2,
-  "currentSpec": "string-reverse",
+  "currentSpec": "string-capitalize",
   "currentStep": "planning",
-  "patternsEstablished": [],
-  "decisionsLog": []
+  "patternsEstablished": ["vitest-testing", "function-export-pattern"],
+  "decisionsLog": [
+    {
+      "spec": "P1-01",
+      "decision": "Use vitest as test framework",
+      "rationale": "Modern, fast, ESM-native, works well with TypeScript"
+    },
+    {
+      "spec": "P1-01",
+      "decision": "split-reverse-join pattern for string reversal",
+      "rationale": "Idiomatic JavaScript/TypeScript approach"
+    }
+  ]
 }
