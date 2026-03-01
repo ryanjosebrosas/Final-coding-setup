@@ -192,7 +192,7 @@ Key decision: {the main architectural choice and why}
 Risks:     {top 1-2 risks}
 Tests:     {testing approach}
 Estimated tasks: {N tasks}
-Mode:      {Single Plan | Master + Sub-Plans (N phases)}
+Mode:      {Task Briefs (N briefs, default) | Master + Sub-Plans (N phases, escape hatch)}
 
 Approve this direction to write the full plan? [y/n/adjust]
 ```
@@ -205,45 +205,101 @@ Only write the plan file after explicit approval.
 
 ### Auto-Detect Complexity
 
-After Phases 1-4 (discovery/design), assess complexity:
-- **Single Plan Mode**: Estimated tasks < 10, no distinct phases
-- **Master + Sub-Plan Mode**: Estimated tasks >= 10 OR multiple distinct phases identified
+After Phases 1-4 (discovery/design), assess complexity and select the output mode:
+
+- **Task Brief Mode** (DEFAULT — use for all standard features): Produces `plan.md` (overview + task index) + one `task-N.md` brief per task. Each brief is a self-contained execution document for one `/execute` session. Use this for the vast majority of features — there is no task count upper boundary for this mode.
+- **Master + Sub-Plan Mode** (EXCEPTION — escape hatch for genuinely complex features): Use ONLY when the feature has multiple distinct phases with heavy cross-phase dependencies that make a single plan unwieldy. The trigger is architectural complexity, not task count. A feature with 12 straightforward tasks fits comfortably in task brief mode. A feature with 8 tasks across truly independent phases with separate validation gates may warrant master plan mode.
 
 Announce the mode transparently:
-- Single: "This looks like ~8 tasks in one phase — I'll write a single structured plan."
-- Multi: "I count ~15 tasks across 3 phases — I'll use the master + sub-plan approach."
+- Task Brief: "This has ~6 tasks — I'll write `plan.md` + 6 task briefs. Each brief runs in one `/execute` session."
+- Master Plan: "This has {N} tasks across {M} distinct phases with independent validation gates — the cross-phase dependencies make a single plan unwieldy. I'll use the master + sub-plan approach."
 
 ---
 
-### Single Plan Mode
+### Task Brief Mode (Default)
 
-Generate the structured plan. **Every plan is 700-1000 lines. No exceptions.** The depth label (light/standard/heavy) does NOT affect planning quality — it only affects the validation tier during `/build`. All plans get the full treatment:
+**Step 1: Write `plan.md` (overview + task index)**
+
+Every `plan.md` is 700-1000 lines. It is the source of truth and human-readable overview. It contains:
 
 - Feature Description, User Story, Problem Statement, Solution Statement
 - Feature Metadata with Slice Guardrails
-- Pillar Context (if available): pillar N — name, scope, research findings relevant to this spec, PRD requirements this spec covers
+- Pillar Context (if available): pillar N — name, scope, research findings, PRD requirements
 - Context References (codebase files with line numbers, related memories, relevant docs)
 - Patterns to Follow (with actual code snippets from the project)
-- Implementation Plan (Foundation → Core → Integration → Testing phases)
-- Step-by-Step Tasks (every task has ACTION, TARGET, IMPLEMENT, PATTERN, IMPORTS, GOTCHA, VALIDATE)
-- Testing Strategy (unit, integration, edge cases)
+- Implementation Plan (overview of phases/groupings)
+- Step-by-Step Tasks (summary level — 3-4 lines per task with ACTION, TARGET, scope description)
+- Testing Strategy (overview)
 - Validation Commands (all levels of the validation pyramid)
 - Acceptance Criteria (Implementation + Runtime, with checkboxes)
 - Completion Checklist
 - Notes (key decisions, risks, confidence score)
+- **TASK INDEX** table at the bottom listing all task briefs with scope and status
 
-**Hard requirement:** If the plan is under 700 lines, it is REJECTED. Expand code samples, add more task detail, include more pattern references. Code samples must be copy-pasteable, not summaries.
+**TASK INDEX table format:**
+```markdown
+## TASK INDEX
+
+| Task | Brief Path | Scope | Status | Files |
+|------|-----------|-------|--------|-------|
+| 1 | `task-1.md` | {one-line scope description} | pending | {N created, M modified} |
+| 2 | `task-2.md` | {one-line scope description} | pending | {N created, M modified} |
+...
+```
+
+**Hard requirement:** If `plan.md` is under 700 lines, it is REJECTED. Expand code samples, add more context references, add more pattern detail. Code samples must be copy-pasteable, not summaries.
+
+**Step 2: Write task briefs (`task-N.md`) — one per target file**
+
+Using `.opencode/templates/TASK-BRIEF-TEMPLATE.md` as the structural reference, write one task brief for each task:
+
+- Save to `.agents/features/{feature}/task-{N}.md`
+- Each brief is **self-contained** — `/execute` can run it without reading `plan.md` or any other file
+- Each brief targets **700-1000 lines** — this is achieved by pasting all context inline, not by padding
+- No advisory sections (no Feature Description, User Story, Problem Statement, Confidence Score — those live in `plan.md`)
+- Every line must be operationally useful: steps, exact code, validation commands, acceptance criteria
+
+**Task splitting heuristic**: One task brief = one target file. This is the default granularity. A brief that modifies `planning.md` is one task; a brief that modifies `TASK-BRIEF-TEMPLATE.md` is a separate task. Multi-file briefs are the exception — only when edits are tightly coupled (e.g., renaming in file A requires updating the import in file B). If a brief covers 3+ files, split it unless you can justify why the files can't be changed independently.
+
+**How briefs reach 700 lines — inline content, not padding:**
+- **Context References**: Paste the full current content of every section being modified in code blocks (50-150 lines)
+- **Patterns to Follow**: Paste complete reference patterns from other files with analysis (30-80 lines)
+- **Current/Replace blocks**: Paste the EXACT current content and COMPLETE replacement content — every line, preserving indentation (50-200 lines per step)
+- **All sections filled**: Every section from OBJECTIVE through COMPLETION CHECKLIST must be present and substantive. No empty sections, no "N/A" without explanation.
+
+**Hard requirement:** If a task brief is under 700 lines, it is REJECTED. Expand inline content — paste more of the target file's current content, add more pattern snippets, add more validation steps, add more acceptance criteria. If a brief genuinely can't reach 700 lines for a single file, the task is too small — merge it with an adjacent task or add depth (more edge cases, more validation, more context).
+
+**Required sections per task brief:**
+- Objective (one sentence — the test for "done")
+- Scope (files touched, what's out of scope, dependencies)
+- Prior Task Context (what was done in task N-1; "None" for task 1)
+- Context References (files to read with line ranges AND full content pasted inline in code blocks)
+- Patterns to Follow (complete code snippets from the codebase — NOT optional, NOT summaries)
+- Step-by-Step Tasks (each step: IMPLEMENT with exact Current/Replace-with blocks, PATTERN, GOTCHA, VALIDATE)
+- Testing Strategy (unit, integration, edge cases)
+- Validation Commands (L1–L5, each level filled or explicitly "N/A" with reason)
+- Acceptance Criteria (Implementation + Runtime checkboxes)
+- Handoff Notes (what task N+1 needs to know; omit for last task)
+- Completion Checklist
+
+**Rejection criteria** — a task brief is REJECTED if it:
+- Is under 700 lines
+- Uses "see lines X-Y" or "read file Z" instead of pasting content inline
+- Skips any required section (every section above must be present)
+- Has Current/Replace blocks that abbreviate, summarize, or use "..." to skip lines
+- Covers 3+ files without explicit justification
 
 ---
 
-### Master + Sub-Plan Mode
+### Master + Sub-Plan Mode (Escape Hatch)
 
-For complex features with 10+ tasks or multiple distinct phases:
+For genuinely complex features with multiple distinct phases and heavy cross-phase dependencies:
 
 **Step 1: Write Master Plan**
 - ~400-600 lines
 - Save to `.agents/features/{feature}/plan-master.md`
 - Contains: overview, phases, dependencies, cross-phase decisions, risk register
+- Includes SUB-PLAN INDEX table
 
 **Step 2: Write Sub-Plans (sequential)**
 - 700-1000 lines each
@@ -264,12 +320,16 @@ For complex features with 10+ tasks or multiple distinct phases:
 
 Create the feature directory if it doesn't exist: `.agents/features/{feature}/`
 
-**Single Plan Mode:**
+**Task Brief Mode (Default):**
 ```
-.agents/features/{feature}/plan.md
+.agents/features/{feature}/plan.md         ← overview + task index
+.agents/features/{feature}/task-1.md       ← task brief 1
+.agents/features/{feature}/task-2.md       ← task brief 2
+...
+.agents/features/{feature}/task-{N}.md     ← task brief N
 ```
 
-**Master + Sub-Plan Mode:**
+**Master + Sub-Plan Mode (Escape Hatch):**
 ```
 .agents/features/{feature}/plan-master.md
 .agents/features/{feature}/plan-phase-1.md
@@ -284,14 +344,49 @@ After writing the plan, sync to Archon:
 2. Call `manage_task("create", ...)` for each task in the plan
 3. Store Archon task IDs in plan metadata for `/execute` to update
 
+### Pipeline Handoff Write (required)
+
+After writing the plan (and Archon sync if applicable), overwrite `.agents/context/next-command.md`:
+
+**Task Brief Mode (Default):**
+```markdown
+# Pipeline Handoff
+<!-- Auto-updated by pipeline commands. Read by /prime. Do not edit manually. -->
+
+- **Last Command**: /planning
+- **Feature**: {feature}
+- **Next Command**: /execute .agents/features/{feature}/plan.md
+- **Task Progress**: 0/{N} complete
+- **Timestamp**: {ISO 8601 timestamp}
+- **Status**: awaiting-execution
+```
+
+**Master + Sub-Plan Mode:**
+```markdown
+# Pipeline Handoff
+<!-- Auto-updated by pipeline commands. Read by /prime. Do not edit manually. -->
+
+- **Last Command**: /planning
+- **Feature**: {feature}
+- **Next Command**: /execute .agents/features/{feature}/plan-master.md
+- **Master Plan**: .agents/features/{feature}/plan-master.md
+- **Phase Progress**: 0/{M} complete
+- **Timestamp**: {ISO 8601 timestamp}
+- **Status**: awaiting-execution
+```
+
 ---
 
 ## After Writing
 
-**Single Plan Mode:**
+**Task Brief Mode (Default):**
 ```
-Plan written: .agents/features/{feature}/plan.md
-Tasks: {N} tasks across {phases} phases
+Plan written:  .agents/features/{feature}/plan.md
+Task briefs:   .agents/features/{feature}/task-1.md
+               .agents/features/{feature}/task-2.md
+               ...
+               .agents/features/{feature}/task-{N}.md
+Total:         {N} tasks, {N} briefs (one session per brief)
 Pillar: {N} — {name} (from {pillar-file-path})   ← omit if no pillar context
 PRD requirements covered: {list from pillar file PRD Coverage}   ← omit if no pillar context
 Confidence: {X}/10 for one-pass success
