@@ -1,30 +1,174 @@
-# OpenCode AI Coding System
+# Claude Code AI Coding System
 
-This repository contains an AI-assisted development framework with structured workflows, slash commands, agents, and context engineering methodology.
+This repository contains an AI-assisted development framework with structured workflows, slash commands, and context engineering methodology.
 
 ## Core Methodology
 
-@.opencode/sections/01_core_principles.md
+**ARCHITECTURE — Claude Plans, Codex Executes** — Claude (this session) handles ONLY planning, architecture, orchestration, review, commit, and PR. ALL implementation (file edits, code writing, refactoring) is handed to Codex CLI via `codex /execute {task-brief-path}`. Claude does NOT use Edit/Write tools on project source files directly — that is Codex's job. The execution agent is a **swappable slot** — currently Codex CLI, but any CLI agent that can read a task brief and execute instructions can fill this role.
+
+**Violation examples** (all FORBIDDEN):
+- Claude using Edit/Write tools on .ts, .py, .md config, or any project source file
+- Claude writing code in a response and asking the user to apply it
+- Proceeding to execution without a `/planning`-generated task brief in `.agents/features/`
+
+**Valid implementation path**: Plan in `.agents/features/{feature}/` → hand to Codex: `codex /execute .agents/features/{feature}/task-{N}.md` → Codex edits via its own tools → Claude reviews via `/code-review`
+
+**HARD RULE — /planning Before ALL Implementation** — EVERY feature, fix, or non-trivial change MUST go through `/planning` first. The plan MUST be reviewed and approved by the user before ANY implementation begins. No exceptions. No "quick fixes." No "I'll just do this one thing." The sequence is ALWAYS: `/planning` → user reviews plan → user approves → `codex /execute`. Jumping straight to code is a VIOLATION even if the task seems simple.
+
+**MODEL TIERS — Use the right Claude model for the task:**
+- **Opus** (`claude-opus-4-6`) → thinking & planning: `/mvp`, `/prd`, `/planning`, `/council`, architecture decisions
+- **Sonnet** (`claude-sonnet-4-6`) → review & validation: `/code-review`, `/code-loop`, `/system-review`, `/pr`, `/final-review`
+- **Haiku** (`claude-haiku-4-5-20251001`) → retrieval & light tasks: `/prime`, RAG queries, `/commit`, quick checks
+- **Codex CLI** → execution: `codex /execute {task-brief-path}`
+
+**YAGNI** — Only implement what's needed. No premature optimization.
+**KISS** — Prefer simple, readable solutions over clever abstractions.
+**DRY** — Extract common patterns; balance with YAGNI.
+**Limit AI Assumptions** — Be explicit in plans and prompts. Less guessing = better output.
+**Always Be Priming (ABP)** — Start every session with /prime. Context is everything.
 
 ## PIV Loop (Plan → Implement → Validate)
 
-@.opencode/sections/02_piv_loop.md
+```
+PLAN → IMPLEMENT → VALIDATE → (iterate)
+```
+
+### Granularity Principle
+
+Multiple small PIV loops — one feature slice per loop, built completely before moving on.
+Complex features (10+ tasks): `/planning` auto-decomposes into task briefs, one brief per session.
+
+### Planning (Layer 1 + Layer 2)
+
+**Layer 1 — Project Planning** (done once):
+- PRD (what to build), AGENTS.md / CLAUDE.md (how to build)
+
+**Layer 2 — Task Planning** (done for every feature):
+1. **Discovery** — conversation with the user to explore ideas and research the codebase
+2. **Structured Plan** — turn conversation into a markdown document
+   - Save to: `.agents/features/{feature}/plan.md`
+   - Apply the 4 pillars of Context Engineering (see Context Engineering section)
+
+**Do NOT** take your PRD and use it as a structured plan. Break it into granular Layer 2 plans — one per PIV loop.
+
+### Implementation
+- Hand task brief to Codex: `codex /execute .agents/features/{feature}/task-{N}.md`
+  (then task-2.md, task-3.md... one per session)
+- The execution agent is a **swappable slot** — currently Codex CLI, could be any CLI agent that reads the task brief
+- Trust but verify
+- **MANDATORY**: Never execute implementation work without a `/planning` artifact in `.agents/features/`
+- **MANDATORY**: The plan MUST be reviewed and approved by the user before handing to Codex. No silent auto-approval. Present the plan, wait for explicit user approval, then proceed.
+- If tempted to skip planning for a "simple" change — STOP. Run `/planning` anyway.
+
+### Validation
+- AI: tests + linting. Human: code review + manual testing.
+- 5-level pyramid: Syntax → Types → Unit → Integration → Human.
+- Small issues → fix prompts. Major issues → revert to save point, tweak plan, retry.
 
 ## Context Engineering (4 Pillars)
 
-@.opencode/sections/03_context_engineering.md
+Structured plans must cover 4 pillars:
+1. **Memory** — discovery conversation (short-term) + `memory.md` (long-term, read at `/prime`, updated at `/commit`)
+2. **RAG** — external docs, library references. If Archon MCP available, use `rag_search_knowledge_base()` first.
+3. **Prompt Engineering** — be explicit, reduce assumptions
+4. **Task Management** — step-by-step task list. If Archon MCP available, sync tasks with `manage_task()`.
+
+### Pillar → Plan Mapping
+
+| Pillar | Plan Section | What to Include |
+|--------|-------------|-----------------|
+| **Memory** | Related Memories | Past decisions, gotchas from `memory.md` |
+| **RAG** | Relevant Documentation, Patterns to Follow | External docs, codebase code examples |
+| **Prompt Engineering** | Solution Statement, Implementation Plan | Explicit decisions, step-by-step detail |
+| **Task Management** | Step-by-Step Tasks | Atomic tasks with all 7 fields filled |
 
 ## Git Save Points
 
-@.opencode/sections/04_git_save_points.md
+**Before implementation**, commit the plan:
+```
+git add .agents/features/{feature}/plan.md && git commit -m "plan: {feature} structured plan"
+```
+
+**If implementation fails**: `git stash` → tweak plan → retry.
+
+**NEVER include `Co-Authored-By` lines in commits.** Commits are authored solely by the user.
 
 ## Decision Framework
 
-@.opencode/sections/05_decision_framework.md
+**Proceed autonomously when:**
+- Task is clear, following established patterns, or plan is explicit
+
+**Ask the user when:**
+- Requirements ambiguous, multiple approaches, breaking changes, or business logic decisions
+
+Use `/planning` for structured plans in `.agents/features/`.
 
 ## Archon Integration
 
-@.opencode/sections/06_archon_workflow.md
+If Archon MCP is connected, use it for knowledge management, RAG search, and task tracking.
+
+### RAG Workflow (Research Before Implementation)
+
+#### Searching Documentation
+
+1. **Get sources** → `rag_get_available_sources()` - Returns list with id, title, url
+2. **Find source ID** → Match to documentation
+3. **Search** → `rag_search_knowledge_base(query="vector functions", source_id="src_abc123")`
+
+**CRITICAL**: Keep queries SHORT (2-5 keywords only). Vector search works best with concise queries.
+
+#### General Research
+
+```python
+# Search knowledge base (2-5 keywords only!)
+rag_search_knowledge_base(query="authentication JWT", match_count=5)
+
+# Find code examples
+rag_search_code_examples(query="React hooks", match_count=3)
+
+# Read full page content
+rag_read_full_page(page_id="...")  # or url="https://..."
+```
+
+### Task Tracking (Optional)
+
+If connected, sync plan tasks to Archon for visibility:
+
+```python
+# Create project for feature
+manage_project("create", title="feature-name", description="...")
+
+# Create tasks from plan
+manage_task("create", project_id="proj-123", title="Task name", description="...", task_order=10)
+
+# Update task status as you work
+manage_task("update", task_id="task-123", status="doing")
+manage_task("update", task_id="task-123", status="done")
+```
+
+**Task Status Flow**: `todo` → `doing` → `review` → `done`
+
+### RAG Query Optimization
+
+Good queries (2-5 keywords):
+- `rag_search_knowledge_base(query="vector search pgvector")`
+- `rag_search_code_examples(query="React useState")`
+
+Bad queries (too long):
+- `rag_search_knowledge_base(query="how to implement vector search with pgvector in PostgreSQL...")`
+
+### If Archon Not Connected
+
+Proceed without it. Archon is an enhancement, not a requirement. Use local codebase exploration (Glob, Grep, Read) and WebFetch for documentation.
+
+## Codex CLI Integration (`.codex/`)
+
+Codex CLI skills for native execution in this system:
+- `.codex/skills/execute/SKILL.md` — Execute a task brief (invoke: "execute the task brief at...")
+- `.codex/skills/prime/SKILL.md` — Load project context (invoke: "prime me" or "load context")
+- `.codex/skills/commit/SKILL.md` — Create a conventional commit (invoke: "commit my changes")
+- `.codex/skills/code-review/SKILL.md` — Technical code review (invoke: "review my code" or "code review")
+- `.codex/skills/code-loop/SKILL.md` — Automated fix loop (invoke: "code loop" or "fix all review issues")
 
 ---
 
@@ -43,7 +187,6 @@ All generated/dynamic content lives at project root:
   - `loop-report-{N}.md` — Loop iteration reports
   - `checkpoint-{N}.md` — Loop checkpoints
   - `fixes-{N}.md` — Fix plans from `/code-loop`
-- `.agents/specs/` — BUILD_ORDER, PILLARS, build-state.json
 - `.agents/context/` — Session context
   - `next-command.md` — Pipeline handoff file (auto-updated by every pipeline command, read by `/prime`)
 
@@ -74,7 +217,7 @@ All generated/dynamic content lives at project root:
 | **Phase Progress** | N/M complete (if multi-phase) |
 | **Task Progress** | N/M complete (if task brief mode) |
 | **Timestamp** | When handoff was written |
-| **Status** | Pipeline state (awaiting-execution, executing-tasks, executing-series, awaiting-review, awaiting-fixes, awaiting-re-review, ready-to-commit, ready-for-pr, pr-open, blocked, build-loop-continuing) |
+| **Status** | Pipeline state (awaiting-execution, executing-tasks, executing-series, awaiting-review, awaiting-fixes, awaiting-re-review, ready-to-commit, ready-for-pr, pr-open, blocked) |
 
 The handoff file is NOT a log — it only contains the latest state. History lives in git commits and `.done.md` artifacts.
 
@@ -124,45 +267,43 @@ Session 6:  /prime → /commit → /pr                               → END (bo
 - If a session crashes, the brief/phase wasn't marked `.done.md`, so the next session retries it
 - `/commit → /pr` runs in the same session when they are the final pipeline step. `/commit` writes a `ready-for-pr` handoff, but `/pr` runs immediately after (not in a separate session). If `/pr` fails, its failure handoff persists for the next `/prime` session.
 
-### Static Configuration (`.opencode/`)
+### Static Configuration (`.claude/`)
 System configuration and reusable assets:
-- `.opencode/commands/` — Slash commands
-- `.opencode/agents/` — Custom subagents
-- `.opencode/templates/` — Plan and document templates
-- `.opencode/reference/` — On-demand guides (loaded when needed)
-- `.opencode/sections/` — Auto-loaded rules (always loaded)
-- `.opencode/skills/` — Planning methodology and workflows
+- `.claude/commands/` — Slash commands (manual pipeline)
+- `.claude/sections/` — Auto-loaded rules (always loaded)
+- `.claude/config.md` — Auto-detected project stack and validation commands
 
 ---
+
+## Manual Pipeline
+
+```
+/prime → /mvp → /prd → /planning {feature} → /execute → /code-loop → /commit → /pr
+```
+
+## Model Assignment
+
+| Model | Role | Commands |
+|-------|------|----------|
+| **Claude Opus** | Think / Plan | `/mvp`, `/prd`, `/planning`, `/council` |
+| **Claude Sonnet** | Review / Validate | `/code-review`, `/code-loop`, `/system-review`, `/pr`, `/final-review` |
+| **Claude Haiku** | Retrieve / Light | `/prime`, `/commit`, RAG queries |
+| **Codex CLI** | Execute | `codex /execute {task-brief-path}` |
 
 ## Key Commands
 
-| Command | Purpose |
-|---------|---------|
-| `/prime` | Load codebase context at session start |
-| `/planning {feature}` | Create structured implementation plan |
-| `/execute {plan}` | Implement from plan |
-| `/build` | Guided feature implementation with /pillars |
-| `/code-review` | Technical code review |
-| `/code-loop` | Automated review → fix → commit cycle |
-| `/system-review` | Divergence analysis (plan vs implementation) |
-| `/commit` | Conventional git commit |
-| `/pr` | Create pull request from feature commits |
-| `/sync` | Check Archon sync status |
-| `/final-review` | Optional: human approval gate before commit |
-| `/code-review-fix` | Apply fixes from code review findings |
-
----
-
-## On-Demand Reference Guides
-
-Load these when needed for specific tasks:
-
-| Guide | When to Load |
-|-------|--------------|
-| `reference/piv-loop-practice.md` | Deep dive on PIV methodology |
-| `reference/validation-discipline.md` | 5-level validation pyramid |
-| `reference/implementation-discipline.md` | Execute command patterns |
-| `reference/command-design-framework.md` | Creating new commands |
-| `reference/system-foundations.md` | Core system architecture |
-| `reference/layer1-guide.md` | Building CLAUDE.md/AGENTS.md |
+| Command | Model | Purpose |
+|---------|-------|---------|
+| `/prime` | Haiku | Load codebase context at session start |
+| `/mvp` | Opus | Define product vision (big idea discovery) |
+| `/prd` | Opus | Create full product requirements document |
+| `/planning {feature}` | Opus | Create structured implementation plan + task briefs |
+| `codex /execute {brief}` | Codex CLI | Implement from task brief (one brief per session) |
+| `/code-review` | Sonnet | Technical code review |
+| `/code-review-fix {review}` | Sonnet | Apply fixes from code review findings |
+| `/code-loop {feature}` | Sonnet | Review → fix → re-review cycle |
+| `/final-review` | Sonnet | Human approval gate before commit |
+| `/system-review` | Sonnet | Divergence analysis (plan vs implementation) |
+| `/commit` | Haiku | Conventional git commit |
+| `/pr` | Sonnet | Create pull request from feature commits |
+| `/council {topic}` | Opus | Multi-perspective discussion for architecture decisions |
