@@ -1,5 +1,6 @@
 ---
 description: Create a full Product Requirements Document with architecture, tech specs, and backend design
+model: claude-opus-4-6
 argument-hint: [output-filename]
 ---
 
@@ -20,10 +21,10 @@ The detailed build blueprint. Takes the vision from `/mvp` and expands it into a
 ## Pipeline Position
 
 ```
-/mvp (big idea) → /prd (full spec) → /pillars (layers) → /decompose (build order) → /build next → /ship
+/mvp (big idea) → /prd (full spec) → /pillars (layers) → /decompose (per-pillar spec) → /planning → /execute → /code-review → /commit → /pr
 ```
 
-This is Step 2. Reads `mvp.md` as primary input. Output feeds `/pillars` and `/decompose`.
+This is Step 2. Reads `mvp.md` as primary input. Output feeds `/pillars`.
 
 ---
 
@@ -54,7 +55,10 @@ Spec Lock:
 Confirm? (yes / adjust: ...)
 ```
 
-Do NOT write the PRD until the user confirms.
+**HARD STOP** — Do NOT write the PRD until the user confirms. "Sure" or silence is not
+confirmation. If the user says "just write it", explain that the Spec Lock catches
+foundation mismatches that cost hours to fix after the PRD is written. Re-present and
+wait for explicit "yes" or specific adjustments.
 
 ---
 
@@ -281,7 +285,7 @@ Quality indicators:
 
 ### Section 12: Implementation Phases
 
-Break the build into 3-4 phases aligned with the pillar structure that `/pillars` will produce.
+Break the build into 3-4 phases. Each phase becomes one or more `/planning` sessions.
 
 **Phase 1: {Name} — {goal}**
 - Deliverables:
@@ -343,8 +347,11 @@ Review the entire conversation history and `mvp.md`. Extract:
 
 ### 3. Section Depth
 
-- Full PRD: all sections, full detail
-- Lightweight PRD: Sections 1-6, 11-12 only — skip detailed API spec, backend design depth, appendix
+**Default: Full PRD** (all 15 sections, full detail). Use Lightweight only when the user
+explicitly requests it — do not default to Lightweight to save time.
+
+- **Full PRD** (default): all sections, full detail
+- **Lightweight PRD** (user-requested only): Sections 1-6, 11-12 only — skip detailed API spec, backend design depth, appendix
 - For agent/tool projects: emphasize Section 8 (backend design) and tool contracts
 - For user-facing apps: emphasize Section 5 (user stories) and Section 9 (API spec)
 
@@ -378,7 +385,7 @@ Key decisions:
 - Architecture: {pattern}
 - Phases: {N phases, Phase 1 = {name}}
 
-Next: /pillars — analyze the PRD and identify infrastructure layers.
+Next: /pillars — analyze this PRD to identify infrastructure layers and build order.
 Run /pillars to continue.
 ```
 
@@ -398,7 +405,7 @@ If no RAG available, proceed with codebase exploration + conversation context.
 ## Notes
 
 - Never skip the Spec Lock and Direction Preview gates
-- The backend design section (Section 8) is what makes a PRD useful for `/decompose` — vague service descriptions produce vague specs
+- The backend design section (Section 8) is what makes a PRD useful for planning — vague service descriptions produce vague plans
 - Tech stack in Section 7 must be concrete: specific languages, frameworks, and versions — not "modern web stack"
-- Implementation phases in Section 12 should map to what `/pillars` will later call "pillars" — they're the same structure, just less formal
+- Implementation phases in Section 12 become the input for `/pillars`, which identifies the build order — then `/decompose` per pillar, then `/planning`
 - For existing codebases: scan the repo first, extract actual patterns and stack from the code rather than inventing

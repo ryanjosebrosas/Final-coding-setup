@@ -1,5 +1,6 @@
 ---
 description: Define or refine the product MVP vision through interactive big-idea discovery
+model: claude-opus-4-6
 ---
 
 # MVP: Big Idea Discovery
@@ -19,7 +20,7 @@ The entry point to everything. Before a single line of code is written, the idea
 ## Pipeline Position
 
 ```
-/mvp (big idea) → /prd (full spec) → /pillars (layers) → /decompose (build order) → /build next → /ship
+/mvp (big idea) → /prd (full spec) → /planning (feature plan) → /execute → /code-review → /commit → /pr
 ```
 
 This is Step 1. Nothing else starts without a clear `mvp.md`.
@@ -110,7 +111,9 @@ Tech Direction: {stack or "undecided"}
 Does this capture it? (yes / adjust: ...)
 ```
 
-Do NOT proceed until the user says yes or makes corrections. Incorporate corrections and re-present if needed.
+**HARD STOP** — Do NOT write `mvp.md` until the user explicitly confirms. "Close enough"
+is not confirmation. If the user is vague, re-present the synthesis and ask again.
+Incorporate corrections and re-present until you have an unambiguous "yes".
 
 ---
 
@@ -135,7 +138,7 @@ This should be precise enough to read to a developer and have them understand wh
 
 ## Core Capabilities
 
-These are the building blocks. Each one becomes one or more specs in /decompose.
+These are the building blocks. Each one becomes one or more features in /planning.
 
 1. {Capability — one line, verb-first: "Store and retrieve..."}
 2. {Capability}
@@ -152,6 +155,9 @@ These are the building blocks. Each one becomes one or more specs in /decompose.
 
 ## Out of Scope (MVP)
 
+**REQUIRED: At least 2 items.** An MVP with no Out of Scope section has not been scoped.
+Scope creep happens downstream when deferrals are unnamed here.
+
 These are real ideas that belong in a future version — not this one.
 
 - {Deferred capability — with one sentence on WHY it's deferred}
@@ -159,7 +165,7 @@ These are real ideas that belong in a future version — not this one.
 
 ## MVP Done When
 
-These are the acceptance signals for the entire project. /ship checks these.
+These are the acceptance signals for the entire project.
 
 - [ ] {Concrete, testable signal — not "works well" but "user can do X end-to-end"}
 - [ ] {Concrete signal}
@@ -173,7 +179,8 @@ These are the acceptance signals for the entire project. /ship checks these.
 Show the user the written `mvp.md` and present the next step:
 
 ```
-MVP defined. Saved to mvp.md.
+mvp.md written to: {project root}/mvp.md
+Lines: {line count} | Capabilities: {N} | Done-when criteria: {N}
 
 Core capabilities identified: {N}
 Tech direction: {stack summary}
@@ -181,6 +188,8 @@ MVP done when: {N criteria}
 
 Next: /prd — expand this into a full product spec with architecture, tech stack,
 backend design, API contracts, and implementation phases.
+
+Then for each capability: /planning {feature} to create an implementation plan.
 
 Run /prd to continue.
 ```
