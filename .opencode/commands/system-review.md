@@ -5,6 +5,14 @@ model: claude-sonnet-4-6
 
 # System Review (Enhanced)
 
+## Pipeline Position
+
+```
+/prime → /mvp → /prd → /pillars → /decompose → /planning → /execute → /code-review → /code-loop → /commit → /pr → /system-review (this)
+```
+
+Post-PR meta-analysis. Reads plan artifacts and git diff. Outputs process improvement suggestions.
+
 Perform a meta-level analysis of how well the implementation followed the plan and identify process improvements.
 
 ## Purpose

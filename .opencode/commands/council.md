@@ -5,7 +5,13 @@ model: claude-opus-4-6
 
 # Council
 
-Present multiple perspectives on the given topic. Claude generates diverse viewpoints internally — or uses the Agent tool to spawn sub-perspectives — then synthesizes them.
+## Pipeline Position
+
+```
+Standalone utility — invoke at any point for architecture decisions
+```
+
+Provides multi-model perspective on complex decisions. Reads topic from user input. Outputs synthesized recommendation.
 
 ## Topic: $ARGUMENTS
 

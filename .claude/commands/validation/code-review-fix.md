@@ -4,6 +4,14 @@ description: Process and fix bugs found in code review
 
 # Validation: Code Review Fix
 
+## Pipeline Position
+
+```
+Standalone validation utility — invoked directly by user
+```
+
+Process and fix code review findings. Reads review artifact. Outputs fixed code files.
+
 Fix issues found by `/validation/code-review` or `/code-review`. Takes a review artifact and systematically resolves each issue.
 
 ## Usage

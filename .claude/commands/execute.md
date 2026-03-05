@@ -4,6 +4,14 @@ description: Execute an implementation plan
 
 # Execute: Implement from Plan
 
+## Pipeline Position
+
+```
+/prime → /mvp → /prd → /pillars → /decompose → /planning → /execute (this) → /code-review → /code-loop → /commit → /pr
+```
+
+Implements planned tasks. Reads plan from `.agents/features/{feature}/plan.md`. Outputs modified files.
+
 ## Hard Entry Gate (Non-Skippable)
 
 `/execute` is plan-bound only.

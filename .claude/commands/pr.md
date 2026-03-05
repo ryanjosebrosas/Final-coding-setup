@@ -5,6 +5,14 @@ model: claude-sonnet-4-6
 
 # PR: Create Branch and Pull Request
 
+## Pipeline Position
+
+```
+/prime → /mvp → /prd → /pillars → /decompose → /planning → /execute → /code-review → /code-loop → /commit → /pr (this)
+```
+
+Creates pull request for committed work. Reads commit history from git. Outputs PR URL.
+
 ## Arguments
 
 `$ARGUMENTS` — Optional: feature name for the branch (e.g., `supabase-provider`), or PR title override

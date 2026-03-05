@@ -5,6 +5,14 @@ model: claude-sonnet-4-6
 
 # Code Loop: Automated Fix Loop
 
+## Pipeline Position
+
+```
+/prime → /mvp → /prd → /pillars → /decompose → /planning → /execute → /code-review → /code-loop (this) → /commit → /pr
+```
+
+Automated review-fix cycle. Reads review artifacts. Outputs clean code ready for commit.
+
 ## Purpose
 
 Automates the fix loop workflow:

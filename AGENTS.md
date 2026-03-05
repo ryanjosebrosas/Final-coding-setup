@@ -4,22 +4,36 @@ This repository contains an AI-assisted development framework with structured wo
 
 ## Core Methodology
 
-**ARCHITECTURE — Claude Plans, Codex Executes** — Claude (this session) handles ONLY planning, architecture, orchestration, review, commit, and PR. ALL implementation (file edits, code writing, refactoring) is handed to Codex CLI via `codex /execute {task-brief-path}`. Claude does NOT use Edit/Write tools on project source files directly — that is Codex's job. The execution agent is a **swappable slot** — currently Codex CLI, but any CLI agent that can read a task brief and execute instructions can fill this role.
+**ARCHITECTURE — Claude Plans, Execution Agent Implements** — Claude (this session) handles ONLY planning, architecture, orchestration, review, commit, and PR. ALL implementation (file edits, code writing, refactoring) is handed to an **execution agent**. 
+
+**Execution Options (FLEXIBLE — choose what works for you):**
+
+| Option | How It Works | When to Use |
+|--------|--------------|-------------|
+| **Codex CLI** | `codex /execute .agents/features/{feature}/task-{N}.md` | Default, automated execution |
+| **Alternative CLI** | `aider --file task.md`, `gemini execute task.md`, etc. | If you prefer a different execution agent |
+| **Manual Execution** | Read `task-{N}.md` → implement by hand → review with `/code-review` | Full control, learning, or when no CLI available |
+| **Dispatch Agent** | `dispatch(mode="agent", taskType="execution", ...)` | Use T1 models via OpenCode server |
+
+**The execution agent is a SWAPPABLE SLOT.** The task brief format (`.agents/features/{feature}/task-{N}.md`) is the universal interface — any agent, tool, or human that can read a markdown file and implement the instructions works.
 
 **Violation examples** (all FORBIDDEN):
 - Claude using Edit/Write tools on .ts, .py, .md config, or any project source file
 - Claude writing code in a response and asking the user to apply it
 - Proceeding to execution without a `/planning`-generated task brief in `.agents/features/`
 
-**Valid implementation path**: Plan in `.agents/features/{feature}/` → hand to Codex: `codex /execute .agents/features/{feature}/task-{N}.md` → Codex edits via its own tools → Claude reviews via `/code-review`
+**Valid implementation paths:**
+1. **Automated**: Plan in `.agents/features/{feature}/` → hand to Codex: `codex /execute .agents/features/{feature}/task-{N}.md` → Codex edits → Claude reviews via `/code-review`
+2. **Manual**: Plan in `.agents/features/{feature}/` → read `task-{N}.md` → implement by hand → Claude reviews via `/code-review`
+3. **Alternative CLI**: Plan in `.agents/features/{feature}/` → use preferred execution agent → Claude reviews via `/code-review`
 
-**HARD RULE — /planning Before ALL Implementation** — EVERY feature, fix, or non-trivial change MUST go through `/planning` first. The plan MUST be reviewed and approved by the user before ANY implementation begins. No exceptions. No "quick fixes." No "I'll just do this one thing." The sequence is ALWAYS: `/planning` → user reviews plan → user approves → `codex /execute`. Jumping straight to code is a VIOLATION even if the task seems simple.
+**HARD RULE — /planning Before ALL Implementation** — EVERY feature, fix, or non-trivial change MUST go through `/planning` first. The plan MUST be reviewed and approved by the user before ANY implementation begins. No exceptions. No "quick fixes." No "I'll just do this one thing." The sequence is ALWAYS: `/planning` → user reviews plan → user approves → **choose execution method**. Jumping straight to code is a VIOLATION even if the task seems simple.
 
-**MODEL TIERS — Use the right Claude model for the task:**
+**MODEL TIERS — Use the right model for the task:**
 - **Opus** (`claude-opus-4-6`) → thinking & planning: `/mvp`, `/prd`, `/planning`, `/council`, architecture decisions
 - **Sonnet** (`claude-sonnet-4-6`) → review & validation: `/code-review`, `/code-loop`, `/system-review`, `/pr`, `/final-review`
 - **Haiku** (`claude-haiku-4-5-20251001`) → retrieval & light tasks: `/prime`, RAG queries, `/commit`, quick checks
-- **Codex CLI** → execution: `codex /execute {task-brief-path}`
+- **Execution Agent** → implementation: YOU choose (manual, Codex, aider, Claude Code, etc.)
 
 **YAGNI** — Only implement what's needed. No premature optimization.
 **KISS** — Prefer simple, readable solutions over clever abstractions.
@@ -52,13 +66,28 @@ Complex features (10+ tasks): `/planning` auto-decomposes into task briefs, one 
 **Do NOT** take your PRD and use it as a structured plan. Break it into granular Layer 2 plans — one per PIV loop.
 
 ### Implementation
-- Hand task brief to Codex: `codex /execute .agents/features/{feature}/task-{N}.md`
-  (then task-2.md, task-3.md... one per session)
-- The execution agent is a **swappable slot** — currently Codex CLI, could be any CLI agent that reads the task brief
-- Trust but verify
-- **MANDATORY**: Never execute implementation work without a `/planning` artifact in `.agents/features/`
-- **MANDATORY**: The plan MUST be reviewed and approved by the user before handing to Codex. No silent auto-approval. Present the plan, wait for explicit user approval, then proceed.
+
+Choose your execution method:
+
+| Method | Command | Best For |
+|--------|---------|-----------|
+| **Codex CLI** | `codex /execute .agents/features/{feature}/task-{N}.md` | Automated execution (default) |
+| **Alternative CLI** | `aider --file task.md`, `gemini execute task.md`, etc. | Different execution agent preference |
+| **Manual Execution** | Read `task-N.md` → implement by hand → `/code-review` | Full control, learning, no CLI required |
+| **Dispatch Agent** | `dispatch(mode="agent", taskType="execution", ...)` | T1 models via OpenCode server |
+
+**Implementation rules:**
+- One task brief per session (then task-2.md, task-3.md...)
+- Trust but verify — always run `/code-review` after execution
+- **MANDATORY**: Never execute without a `/planning` artifact in `.agents/features/`
+- **MANDATORY**: The plan MUST be reviewed and approved by the user before execution
 - If tempted to skip planning for a "simple" change — STOP. Run `/planning` anyway.
+
+**Manual execution workflow:**
+1. Open `.agents/features/{feature}/task-{N}.md` (read the brief)
+2. Implement by hand using your preferred editor/IDE
+3. Run `/code-review` or `/code-loop` to validate
+4. Mark complete: `task-N.md` → `task-N.done.md`
 
 ### Validation
 - AI: tests + linting. Human: code review + manual testing.
@@ -161,9 +190,18 @@ Bad queries (too long):
 
 Proceed without it. Archon is an enhancement, not a requirement. Use local codebase exploration (Glob, Grep, Read) and WebFetch for documentation.
 
-## Codex CLI Integration (`.codex/`)
+## Execution Agent Integration (`.codex/` or Alternative)
 
-Codex CLI skills for native execution in this system:
+The execution agent is a **swappable slot**. Choose one:
+
+| Option | Location | Invoke |
+|--------|----------|--------|
+| **Codex CLI** (default) | `.codex/skills/execute/SKILL.md` | `codex /execute task.md` |
+| **Aider CLI** | Create `.aider/skills/execute/SKILL.md` | `aider --file task.md` |
+| **Gemini CLI** | Create skills for Gemini | `gemini execute task.md` |
+| **Manual** | None required | Read `task-N.md` → implement → `/code-review` |
+
+**Codex CLI skills** (if installed):
 - `.codex/skills/execute/SKILL.md` — Execute a task brief (invoke: "execute the task brief at...")
 - `.codex/skills/prime/SKILL.md` — Load project context (invoke: "prime me" or "load context")
 - `.codex/skills/commit/SKILL.md` — Create a conventional commit (invoke: "commit my changes")
@@ -288,7 +326,9 @@ System configuration and reusable assets:
 | **Claude Opus** | Think / Plan | `/mvp`, `/prd`, `/planning`, `/council` |
 | **Claude Sonnet** | Review / Validate | `/code-review`, `/code-loop`, `/system-review`, `/pr`, `/final-review` |
 | **Claude Haiku** | Retrieve / Light | `/prime`, `/commit`, RAG queries |
-| **Codex CLI** | Execute | `codex /execute {task-brief-path}` |
+| **Execution Agent** | Implement | `codex /execute`, `aider --file`, `dispatch(agent)`, OR manual implementation |
+
+**Execution is FLEXIBLE** — The task brief format is the universal interface. Use Codex CLI (default), alternative CLI (Aider, Gemini, etc.), dispatch to T1 models, or implement manually.
 
 ## Key Commands
 

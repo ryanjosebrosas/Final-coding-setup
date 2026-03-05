@@ -2,7 +2,7 @@
 name: pillars
 description: Knowledge framework for infrastructure pillar identification, sequencing, and gate criteria quality
 license: MIT
-compatibility: claude-code
+compatibility: opencode
 ---
 
 # Pillars Methodology — Infrastructure Layer Analysis

@@ -4,6 +4,14 @@ description: Technical code review for quality and bugs — runs pre-commit
 
 # Validation: Code Review
 
+## Pipeline Position
+
+```
+Standalone validation utility — invoked directly by user
+```
+
+Deep technical code review before commit. Reads changed files from git. Outputs review artifact with severity-classified findings.
+
 Perform a thorough technical code review on recently changed files. This is the validation-focused review — deeper than a quick `/code-review`, designed to run before committing.
 
 ## Core Principles

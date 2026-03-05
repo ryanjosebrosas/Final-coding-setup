@@ -4,6 +4,14 @@ description: Generate implementation report for system review
 
 # Validation: Execution Report
 
+## Pipeline Position
+
+```
+Standalone validation utility — invoked directly by user
+```
+
+Document what was implemented. Reads plan and execution artifacts. Outputs structured execution report.
+
 Review and deeply analyze the implementation you just completed. Generates a structured report that feeds into `/system-review` and `/validation/system-review`.
 
 ## Usage

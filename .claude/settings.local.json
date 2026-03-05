@@ -16,7 +16,15 @@
       "Bash(chmod +x:*)",
       "Bash(done)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(do:*)",
+      "Bash(test:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(gh api:*)",
+      "Read(//c/Users/Utopia/.config/opencode/**)",
+      "Read(//c/Users/Utopia/**)"
     ]
   }
 }

@@ -5,6 +5,14 @@ model: claude-haiku-4-5-20251001
 
 # Commit: Create Git Commit
 
+## Pipeline Position
+
+```
+/prime → /mvp → /prd → /pillars → /decompose → /planning → /execute → /code-review → /code-loop → /commit (this) → /pr
+```
+
+Commits completed work. Reads changed files from git status. Outputs commit hash and feeds `/pr`.
+
 ## Files to Commit
 
 Files specified: $ARGUMENTS

@@ -5,6 +5,14 @@ model: claude-haiku-4-5-20251001
 
 # Prime: Load Project Context + Stack Detection
 
+## Pipeline Position
+
+```
+/prime (this) → /mvp → /prd → /pillars → /decompose → /planning → /execute → /code-review → /code-loop → /commit → /pr
+```
+
+First command in any session. Reads project files and git state. Outputs context summary for session.
+
 Quick context load with automatic tech stack detection. No agents, no bloat. Direct commands and file reads.
 
 ## Step 0: Dirty State Check
@@ -198,7 +206,6 @@ Recognized status values:
 - `ready-for-pr` — committed, awaiting `/pr`
 - `pr-open` — PR created, pipeline complete (informational)
 - `blocked` — manual intervention required
-- `build-loop-continuing` — commit done in `/build` loop, continuing to next spec
 
 If the file does not exist or is empty, skip to Source 2.
 

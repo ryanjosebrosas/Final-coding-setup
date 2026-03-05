@@ -2,7 +2,7 @@
 name: decompose
 description: Knowledge framework for one-pillar-per-session research, spec atomicity, and dependency analysis discipline
 license: MIT
-compatibility: claude-code
+compatibility: opencode
 ---
 
 # Decompose Methodology — One Pillar, Deep Research

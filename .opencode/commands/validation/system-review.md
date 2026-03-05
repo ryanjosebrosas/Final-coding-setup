@@ -4,6 +4,14 @@ description: Analyze implementation against plan for process improvements
 
 # Validation: System Review
 
+## Pipeline Position
+
+```
+Standalone validation utility — invoked directly by user
+```
+
+Process-level meta-analysis. Reads plan and execution artifacts. Outputs process improvement suggestions.
+
 Perform a meta-level analysis of how well the implementation followed the plan and identify process improvements.
 
 ## Purpose

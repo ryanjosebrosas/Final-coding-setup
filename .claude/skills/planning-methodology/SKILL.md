@@ -13,7 +13,6 @@ This skill provides the knowledge framework for transforming feature requests in
 
 - User asks to "plan a feature", "create an implementation plan", or "structure development work"
 - A feature request needs to be broken down before implementation
-- Inside `/build` when generating standard or heavy plans
 
 ## The Discovery-to-Plan Flow
 
@@ -219,5 +218,4 @@ As a {user}, I want to {action}, so that {benefit}.
 
 - `/planning [feature]` — The interactive discovery workflow that uses this methodology
 - `/execute [plan-path]` — Implements the plan this methodology produces
-- `/build [spec]` — Wraps planning + execution in an automated loop
 - `/prime` — Load context before starting planning

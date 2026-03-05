@@ -2,7 +2,7 @@
 name: mvp
 description: Knowledge framework for big-idea discovery using Socratic questioning and scope discipline
 license: MIT
-compatibility: claude-code
+compatibility: opencode
 ---
 
 # MVP Discovery — Socratic Methodology

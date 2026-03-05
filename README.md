@@ -46,7 +46,18 @@ flowchart LR
 - `/planning` MUST run before any code is written. Always.
 - The plan MUST be reviewed and approved by the user before `/execute` runs.
 - Validation runs at every level: syntax → types → unit tests → integration → human review.
-- Claude Opus (orchestrator) never writes code directly. All implementation is dispatched to T1–T5 models. If dispatch is unavailable, the primary session model implements.
+- Claude Opus (orchestrator) never writes code directly. All implementation is dispatched to execution agents or done manually.
+
+**Execution Options (FLEXIBLE):**
+
+| Option | Command | Description |
+|--------|---------|-------------|
+| **Codex CLI** | `codex /execute task.md` | Default: automated execution via Codex |
+| **Alternative CLI** | `aider --file task.md`, `gemini execute task.md` | Swap in any CLI that reads task briefs |
+| **Manual Execution** | Read `task-N.md` → implement by hand → `/code-review` | Full control, learning, no CLI required |
+| **Dispatch Agent** | `dispatch(mode="agent", taskType="execution")` | Use T1 models via OpenCode server |
+
+The task brief format (`.agents/features/{feature}/task-{N}.md`) is the **universal interface** — any agent, tool, or human that can read a markdown file and implement the instructions works. The execution agent is a **swappable slot**.
 
 ### Context Engineering (4 Pillars)
 
@@ -204,95 +215,147 @@ opencode-ai-coding-system/
 
 | Command | Description |
 |---------|-------------|
-| `/planning {feature}` | Interactive discovery session: explore ideas → synthesize → analyze → decide → decompose → write 700-1000 line plan + task briefs. Supports `--auto-approve` for autonomous mode. |
-| `/execute {plan.md}` | Implement from a `/planning` artifact. Auto-detects task brief mode vs master plan mode. Executes ONE brief per session. Writes execution report and `.done.md` markers. |
-| `/code-loop {feature}` | Automated review → fix → review loop until clean. Dispatches multi-model review, applies fixes via `/code-review-fix`, runs validation at each iteration. |
-| `/commit` | Conventional commit with auto-detected scope, type, and breaking change detection. Writes `ready-for-pr` handoff. |
-| `/pr {feature}` | Create GitHub PR from feature commits with structured body (what, validation, files changed). |
+| `/planning {feature}` | Interactive discovery session: explore ideas → synthesize → analyze → decide → decompose → write 700-1000 line plan + task briefs. **User reviews and approves before execution.** |
+| `/execute {plan.md}` | Implement from a `/planning` artifact. Auto-detects task brief mode vs master plan mode. Executes ONE brief per session. **You choose: manual implementation or agent execution.** |
+| `/code-loop {feature}` | Review → fix → review loop until clean. Dispatches multi-model review, surfaces findings for you to review. You fix, it re-validates. |
+| `/commit` | Conventional commit with auto-detected scope, type, and breaking change detection. **You review the message before commit.** |
+| `/pr {feature}` | Create GitHub PR from feature commits with structured body. **You review the PR before creation.** |
 
-### Autonomous Build Pipeline
+### Project Foundation
 
 | Command | Description |
 |---------|-------------|
-| `/build [next \| spec-id]` | Fully autonomous spec builder. Picks specs from `BUILD_ORDER.md` and runs the full pipeline: Plan → Plan Review → Commit Plan → Execute → Validate → 4x Code-Loop Gauntlet → Push + PR → Gate Check → Loop. Stops only on gate failure or error. |
-| `/mvp` | Generate PRD scaffold and project foundation. Starting point for new projects. |
-| `/prd` | Structured Product Requirements Document creation. |
-| `/pillars` | Define architectural pillars (groups of related specs with gate criteria). |
-| `/decompose` | Break PRD into ordered specs in `BUILD_ORDER.md` with dependencies and depth labels (light/standard/heavy). |
-| `/ship` | Final release validation after all pillars are complete. |
+| `/mvp` | Big-idea discovery through Socratic questioning. Outputs MVP document. **You approve.** |
+| `/prd` | Structured Product Requirements Document creation from MVP. **You approve.** |
+| `/pillars` | Define architectural pillars with gate criteria. **You approve.** |
+| `/decompose` | Break PRD into ordered specs in `BUILD_ORDER.md`. **You approve.** |
 
 ### Code Quality
 
 | Command | Description |
 |---------|-------------|
-| `/code-review` | Technical code review producing a structured artifact with Critical/Major/Minor findings. |
-| `/code-review-fix {review.md}` | Apply fixes from a code review artifact by severity order. Supports `critical+major`, `all`, `critical` scopes. |
-| `/code-loop {feature}` | Full automated fix loop (see Planning Pipeline above). |
-| `/final-review` | Human approval gate before commit. Optional step for manual sign-off. |
-| `/system-review` | Divergence analysis — compares implementation against plan, flags plan gaps and execution issues. |
+| `/code-review` | Technical code review producing a structured artifact with Critical/Major/Minor findings. **You review findings.** |
+| `/code-review-fix {review.md}` | Apply fixes from a code review artifact by severity order. **You approve fixes.** |
+| `/code-loop {feature}` | Review → fix → review loop. Surfaces findings, you fix, re-validates until clean. |
+| `/final-review` | Human approval gate before commit. |
+| `/system-review` | Divergence analysis — compares implementation against plan, flags gaps and issues. |
 
 ### Utilities
 
 | Command | Description |
 |---------|-------------|
-| `/council {topic}` | Multi-model discussion (3–10 models). Models see each other's responses and can rebut. Returns raw outputs first, synthesis after user acknowledgment. |
+| `/council {topic}` | Multi-model discussion (3–10 models). Models see each other's responses and can rebut. |
 | `/sync` | Check Archon MCP sync status for the current project. |
 
 ---
 
-## The Build Pipeline (`/build`)
+## Manual Workflow (Human-in-Control)
 
-`/build` is the fully autonomous core of the system. Run it once; it builds until done.
+This system is designed for **manual control with human oversight** at every step. You review, you approve, you execute.
 
-```
-/mvp → /prd → /pillars → /decompose → /build next → /ship
-```
-
-### Pipeline Steps (per spec)
+### Workflow Overview
 
 ```
-Step 1: Pick next spec from BUILD_ORDER.md
-Step 2: Plan (700-1000 line plan + task briefs via T0 dispatch)
-Step 3: Plan Review (multi-model batch review — APPROVE / IMPROVE / REJECT)
-Step 4: Commit Plan (git save point before any implementation)
-Step 5: Execute all task briefs (T1 free models, one brief per dispatch session)
-Step 6: Validate (lint → types → unit tests → integration tests; classify fixable vs unresolvable)
-Step 7: 4x Code-Loop Gauntlet (3 free models + Codex gate → commit + push + PR)
-Step 8: Update state (BUILD_ORDER checkboxes, build-state.json, Archon tasks)
-Step 9: Gate check (if this spec is a pillar gate — run acceptance criteria)
-Step 10: Loop to next spec (zero interaction between specs)
+MVP → PRD → PILLARS → DECOMPOSE
+                         │
+                         ▼
+                    BUILD_ORDER.md
+                    (ordered specs)
+                         │
+         ┌───────────────┼───────────────┐
+         │               │               │
+         ▼               ▼               ▼
+      SPEC 1         SPEC 2         SPEC N
+         │               │               │
+         ▼               ▼               ▼
+    ┌─────────┐    ┌─────────┐    ┌─────────┐
+    │PLANNING │    │PLANNING │    │PLANNING │
+    │(you     │    │(you     │    │(you     │
+    │ approve)│    │ approve)│    │ approve)│
+    └────┬────┘    └────┬────┘    └────┬────┘
+         │               │               │
+         ▼               ▼               ▼
+    ┌─────────┐    ┌─────────┐    ┌─────────┐
+    │ EXECUTE │    │ EXECUTE │    │ EXECUTE │
+    │(you     │    │(you     │    │(you     │
+    │ choose) │    │ choose) │    │ choose) │
+    └────┬────┘    └────┬────┘    └────┬────┘
+         │               │               │
+         ▼               ▼               ▼
+    ┌─────────┐    ┌─────────┐    ┌─────────┐
+    │CODE-LOOP│    │CODE-LOOP│    │CODE-LOOP│
+    │(you     │    │(you     │    │(you     │
+    │ fix)    │    │ fix)    │    │ fix)    │
+    └────┬────┘    └────┬────┘    └────┬────┘
+         │               │               │
+         ▼               ▼               ▼
+    ┌─────────┐    ┌─────────┐    ┌─────────┐
+    │ COMMIT  │    │ COMMIT  │    │ COMMIT  │
+    │(you     │    │(you     │    │(you     │
+    │ approve)│    │ approve)│    │ approve)│
+    └────┬────┘    └────┬────┘    └────┬────┘
+         │               │               │
+         ▼               ▼               ▼
+    ┌─────────┐    ┌─────────┐    ┌─────────┐
+    │   PR    │    │   PR    │    │   PR    │
+    │(you     │    │(you     │    │(you     │
+    │ review) │    │ review) │    │ review) │
+    └─────────┘    └─────────┘    └─────────┘
+         │               │               │
+         └───────────────┴───────────────┘
+                         │
+                         ▼
+                   NEXT SPEC
+                (REPEAT from
+                 PLANNING)
 ```
 
-```mermaid
-flowchart TD
-    START[build next] --> S1
+### Session Flow
 
-    S1["Step 1 — Pick spec from BUILD_ORDER"] --> S2
-    S2["Step 2 — Plan via T0 dispatch, 700-1000 lines + task briefs"] --> S3
-    S3["Step 3 — Plan Review, batch-dispatch free models"] --> S3R{Result?}
-    S3R -- APPROVE --> S4
-    S3R -- IMPROVE --> S2
-    S3R -- REJECT twice --> BLOCKED["STOP — blocked"]
-    S4["Step 4 — Commit Plan, git save point"] --> S5
-    S5["Step 5 — Execute briefs, T1 free, one per session"] --> S5C{All briefs done?}
-    S5C -- No --> S5
-    S5C -- Yes --> S6
-    S6["Step 6 — Validate: lint, types, tests"] --> S6R{Errors?}
-    S6R -- Fixable --> S6FIX[Fix loop] --> S6
-    S6R -- Unresolvable --> BLOCKED
-    S6R -- Clean --> S7
-    S7["Step 7 — 4x Code-Loop Gauntlet, 3 free + Codex, commit + push + PR"] --> S7R{Codex clean?}
-    S7R -- Issues remain --> BLOCKED
-    S7R -- Clean and committed --> S8
-    S8["Step 8 — Update state: BUILD_ORDER + build-state.json"] --> S9
-    S9{Gate spec?}
-    S9 -- No --> S10
-    S9 -- Yes ALL PASS --> S10
-    S9 -- Yes ANY FAIL --> BLOCKED
-    S10["Step 10 — Loop to next spec"] --> S1
-
-    style BLOCKED fill:#c0392b,color:#fff
 ```
+Session 1:  /prime → /mvp                              → YOU REVIEW → approve → END
+Session 2:  /prime → /prd                              → YOU REVIEW → approve → END
+Session 3:  /prime → /pillars                         → YOU REVIEW → approve → END
+Session 4:  /prime → /decompose                       → YOU REVIEW → approve → END
+
+Session 5:  /prime → /planning auth-foundation       → YOU REVIEW → approve → END
+Session 6:  /prime → read task-1.md                  → YOU IMPLEMENT → END
+Session 7:  /prime → /code-loop auth-foundation      → YOU REVIEW findings → fix → END
+Session 8:  /prime → /code-loop (repeat until clean) → END
+Session 9:  /prime → /commit                         → YOU REVIEW message → END
+Session 10: /prime → /pr auth-foundation             → YOU REVIEW PR → END
+
+Session 11: /prime → /planning user-models           → YOU REVIEW → approve → END
+...repeat for each spec
+```
+
+`/prime` reads `.agents/context/next-command.md` and tells you exactly what to do next.
+
+### Execution Options (Flexible)
+
+| Option | Command | Best For |
+|--------|---------|-----------|
+| **Manual** | Read `task-N.md` → implement by hand | Full control, learning, no dependencies |
+| **Codex CLI** | `codex /execute task.md` | Automated execution (if installed) |
+| **Claude Code** | Use Claude Code session to implement | Your current workflow |
+| **Aider CLI** | `aider --file task.md` | Different agent preference |
+| **Dispatch** | `dispatch(mode="agent", taskType="execution")` | T1 models via OpenCode server |
+
+**The task brief format (`.agents/features/{feature}/task-{N}.md`) is the universal interface.** Any agent, tool, or human can read it and implement.
+
+### What You Control
+
+| Stage | Your Role | System Role |
+|-------|-----------|-------------|
+| MVP | Guide discovery, approve final | `/mvp` facilitates Socratic questioning |
+| PRD | Review and approve structure | `/prd` synthesizes research, writes doc |
+| PILLARS | Define pillar boundaries | `/pillars` organizes architecture |
+| DECOMPOSE | Review spec ordering | `/decompose` creates BUILD_ORDER.md |
+| PLANNING | Review and approve plan | `/planning` researches and writes plan |
+| EXECUTE | Implement yourself or choose agent | `/execute` provides task brief |
+| CODE-LOOP | Fix issues raised | `/code-loop` validates and surfaces findings |
+| COMMIT | Verify commit message | `/commit` formats conventional commit |
+| PR | Review PR body | `/pr` creates structured PR |
 
 ### The 4x Code-Loop Gauntlet
 
@@ -346,17 +409,17 @@ flowchart LR
 
 Model lineup is pulled from `model-scores.json` if a benchmark has been run, otherwise uses default free models (GLM-5, DeepSeek-V3.2, Qwen3.5-Plus). Loop 4 is always Codex.
 
-### Stop Conditions
+### When to Stop
 
-| Condition | Behavior |
-|-----------|----------|
-| Gate PASSED | Auto-continue to next pillar |
-| Gate FAILED | STOP — report which criteria failed |
-| Unresolvable error | STOP — after max retries |
-| All specs complete | STOP — run `/ship` |
-| User interrupts (Ctrl+C) | STOP — save checkpoint |
+| Condition | What Happens |
+|-----------|--------------|
+| Code review finds issues | You fix, `/code-loop` re-validates |
+| Validation fails (lint/types/tests) | You fix, re-run validation |
+| Ready to commit | `/commit` formats message, you verify |
+| Ready for PR | `/pr` creates PR, you review |
+| Spec complete | `/prime` shows next spec in queue |
 
-Every stop writes `.agents/context/next-command.md`. `/prime` reads it on next session start.
+Every session ends cleanly. `/prime` reads `.agents/context/next-command.md` on next session start and tells you exactly where you left off.
 
 ---
 
@@ -433,7 +496,7 @@ Multi-model discussion where models see each other's responses.
 
 ### `benchmark.ts`
 
-Benchmark all ~20 free models against a standardized code review diff with known ground-truth issues. Auto-generates `codeLoopLineup` in `model-scores.json` — the ranked lineup used by `/build`'s gauntlet.
+Benchmark all ~20 free models against a standardized code review diff with known ground-truth issues. Auto-generates `codeLoopLineup` in `model-scores.json` — the ranked lineup used by the code-loop gauntlet.
 
 ---
 
@@ -513,7 +576,6 @@ stateDiagram-v2
 | `awaiting-fixes` | Review found issues | `/code-review-fix review.md` |
 | `ready-to-commit` | Review clean | `/commit` |
 | `ready-for-pr` | Committed | `/pr {feature}` |
-| `build-loop-continuing` | `/build` committed and continuing | `/build next` (auto) |
 | `blocked` | Manual intervention required | See Next Command field |
 
 ---
@@ -699,12 +761,30 @@ All 19 slash commands are mirrored in `.claude/commands/` for use with Claude Co
 3. Start with `/mvp` for a new project, or `/planning {feature}` for an existing one.
 4. Follow the handoff file — `/prime` tells you exactly what to run next in every session.
 
-For the full autonomous experience:
+For a new project:
 ```
 /prime
 /mvp
 /prd
 /pillars
+/decompose
+```
+
+Then for each spec:
+```
+/prime
+/planning {spec-name}
+# (you review and approve plan)
+# (you execute: manually, Codex, or agent)
+/prime
+/code-loop {spec-name}
+# (you fix until clean)
+/prime
+/commit
+/pr {spec-name}
+```
+
+You control every step. You review and approve at each stage.
 /decompose
 /build next
 ```

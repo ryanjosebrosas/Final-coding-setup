@@ -2,7 +2,7 @@
 name: prd
 description: Knowledge framework for producing actionable PRDs with binding tech decisions and deep backend design
 license: MIT
-compatibility: claude-code
+compatibility: opencode
 ---
 
 # PRD Methodology — Binding Decisions + Backend Depth

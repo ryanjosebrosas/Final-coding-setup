@@ -5,14 +5,17 @@ model: claude-sonnet-4-6
 
 # Final Review: Pre-Commit Approval Gate
 
+## Pipeline Position
+
+```
+/prime → /mvp → /prd → /pillars → /decompose → /planning → /execute → /code-review → /code-loop → /final-review (this) → /commit → /pr
+```
+
+Final approval gate before commit. Reads changed files and review artifacts. Outputs approval decision.
+
 ## Purpose
 
 Final checkpoint between `/code-loop` (or `/code-review`) and `/commit`. Aggregates all review findings, shows what changed, verifies acceptance criteria from the plan, and asks for explicit human approval before committing.
-
-**Workflow position:**
-```
-/execute → /code-loop → /final-review → /commit
-```
 
 This command does NOT fix code. It summarizes, verifies, and asks.
 
