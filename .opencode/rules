@@ -20,7 +20,7 @@ Exit 0 = safe to commit. Any failure = fix and re-run.
 
 ### Plan-Before-Execute
 
-- Never implement code changes without a plan artifact in `.agents/plans/`
+- Never implement code changes without a plan artifact in `.agents/features/{feature}/` (plan.md + task-{N}.md briefs)
 - Plans must be 700-1000 lines (hard requirement)
 - Plans must include copy-pasteable code samples, not pseudocode
 - Plans must include validation commands for every task
@@ -33,17 +33,14 @@ Exit 0 = safe to commit. Any failure = fix and re-run.
 
 ### State Management
 
-- `.agents/specs/build-state.json` is the cross-session state bridge — always read it at session start
+- `.agents/context/next-command.md` is the cross-session state bridge — always read it at session start
 - `memory.md` captures lessons and gotchas — update it after significant work
-- `.agents/specs/BUILD_ORDER.md` checkboxes are the source of truth for spec completion
-- `.agents/specs/PILLARS.md` gates enforce sequential pillar completion
+- `.agents/features/{feature}/plan.md` task index and `.done.md` lifecycle are the source of truth for feature completion
 
 ### File Organization
 
-- Plans go in `.agents/plans/`
-- Reviews go in `.agents/reviews/`
-- Reports go in `.agents/reports/`
-- Build specs go in `.agents/specs/`
+- Feature artifacts (plans, task briefs, reports, reviews) go in `.agents/features/{feature}/`
+- Pipeline state bridge lives at `.agents/context/next-command.md`
 - Completed artifacts get `.done.md` suffix
 - `memory.md` stays at project root
 
