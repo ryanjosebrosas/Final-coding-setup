@@ -52,6 +52,7 @@ export type HookName =
   | "start-work"
   | "prometheus-md-only"
   | "sisyphus-junior-notepad"
+  | "command-model-router"
   // Tool-guard hooks (10)
   | "rules-injector"
   | "comment-checker"

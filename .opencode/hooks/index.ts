@@ -49,6 +49,9 @@ export { createBackgroundNotificationHook } from "./background-notification"
 export { createAgentUsageReminderHook } from "./agent-usage-reminder"
 export type { AgentUsageState } from "./agent-usage-reminder/types"
 
+// Command Model Router - Route slash commands to configured models
+export { createCommandModelRouterHook } from "./command-model-router"
+
 // ============================================================================
 // TOOL-GUARD TIER (Priority 3)
 // ============================================================================

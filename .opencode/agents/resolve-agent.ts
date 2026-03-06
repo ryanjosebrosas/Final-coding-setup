@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { AGENT_REGISTRY, type AgentMetadata, type AgentName } from "./registry"
-import { CATEGORY_MODEL_ROUTES } from "../tools/delegate-task/constants"
+import { loadCategories } from "../config/load-categories"
 
 // ============================================================================
 // RESOLUTION TYPES
@@ -26,6 +26,23 @@ export interface ResolutionOptions {
 // ============================================================================
 // MODEL RESOLUTION
 // ============================================================================
+
+/**
+ * Get category model routes from loaded categories config.
+ */
+function getCategoryModelRoutes(): Record<string, { provider: string; model: string }> {
+  const config = loadCategories()
+  const routes: Record<string, { provider: string; model: string }> = {}
+  
+  for (const [name, def] of Object.entries(config.categories)) {
+    routes[name] = {
+      provider: def.provider,
+      model: def.model,
+    }
+  }
+  
+  return routes
+}
 
 /**
  * Resolve the model for an agent, considering:
@@ -69,7 +86,8 @@ export function resolveAgentModel(options: ResolutionOptions): ResolvedAgent | n
   
   // 3. Category specified - resolve from category
   if (category) {
-    const categoryRoute = CATEGORY_MODEL_ROUTES[category]
+    const categoryRoutes = getCategoryModelRoutes()
+    const categoryRoute = categoryRoutes[category]
     if (categoryRoute) {
       // Find an agent matching the category
       const categoryAgents = Object.values(AGENT_REGISTRY).filter(

@@ -7,7 +7,7 @@
 //
 
 import { AGENT_REGISTRY, type AgentMetadata, type AgentName } from "./registry"
-import { CATEGORY_MODEL_ROUTES, CATEGORY_PROMPT_APPENDS, type CategoryPromptAppendKey } from "../tools/delegate-task/constants"
+import { loadCategories } from "../config/load-categories"
 
 // ============================================================================
 // PROMPT BUILDING TYPES
@@ -76,6 +76,38 @@ function formatAgentSummary(agent: AgentMetadata): string {
 // ============================================================================
 
 /**
+ * Get category model routes from loaded categories config.
+ */
+function getCategoryModelRoutes(): Record<string, { label: string; provider: string; model: string }> {
+  const config = loadCategories()
+  const routes: Record<string, { label: string; provider: string; model: string }> = {}
+  
+  for (const [name, def] of Object.entries(config.categories)) {
+    routes[name] = {
+      label: def.model.toUpperCase(),
+      provider: def.provider,
+      model: def.model,
+    }
+  }
+  
+  return routes
+}
+
+/**
+ * Get category prompt appends from loaded categories config.
+ */
+function getCategoryPromptAppends(): Record<string, string> {
+  const config = loadCategories()
+  const appends: Record<string, string> = {}
+  
+  for (const [name, def] of Object.entries(config.categories)) {
+    appends[name] = def.promptAppend || ""
+  }
+  
+  return appends
+}
+
+/**
  * Build a delegation guide showing category options and skill loading.
  */
 export function buildCategorySkillsDelegationGuide(
@@ -87,9 +119,10 @@ export function buildCategorySkillsDelegationGuide(
   guide += "### Category Options\n"
   guide += "Instead of specifying model, use semantic categories:\n\n"
   
-  const categories = Object.keys(CATEGORY_MODEL_ROUTES)
+  const categoryRoutes = getCategoryModelRoutes()
+  const categories = Object.keys(categoryRoutes)
   for (const cat of categories) {
-    const route = CATEGORY_MODEL_ROUTES[cat]
+    const route = categoryRoutes[cat]
     guide += `- \`${cat}\` → ${route.label}\n`
   }
   
@@ -103,7 +136,7 @@ export function buildCategorySkillsDelegationGuide(
   guide += "```\n"
   
   if (category) {
-    const route = CATEGORY_MODEL_ROUTES[category as CategoryPromptAppendKey]
+    const route = categoryRoutes[category]
     if (route) {
       guide += `\n### Selected Category\n`
       guide += `**${category}** → ${route.label} (${route.provider}/${route.model})\n`
@@ -144,7 +177,8 @@ export function buildAgentPrompt(context: AgentPromptContext): BuiltPrompt {
   // Build category prompt
   let categoryPrompt = ""
   if (context.category) {
-    const promptAppend = CATEGORY_PROMPT_APPENDS[context.category as CategoryPromptAppendKey]
+    const categoryPromptAppends = getCategoryPromptAppends()
+    const promptAppend = categoryPromptAppends[context.category]
     if (promptAppend) {
       categoryPrompt = promptAppend
     }

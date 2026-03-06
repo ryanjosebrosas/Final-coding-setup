@@ -1,0 +1,103 @@
+{
+  // OhMyOpenCode Plugin Configuration
+  // https://github.com/code-yeongyu/oh-my-opencode
+  //
+  // This file configures agents, categories, hooks, and MCP servers.
+  // Project-level settings override user-level (~/.config/opencode/oh-my-opencode.jsonc)
+
+  // ============================================================================
+  // AGENTS
+  // ============================================================================
+  // Override agent models or disable specific agents
+  "agents": {
+    "sisyphus": {
+      "model": "claude-opus-4-5",
+      "provider": "anthropic"
+    },
+    "hephaestus": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    },
+    "oracle": {
+      "model": "gpt-5.2",
+      "provider": "openai"
+    },
+    "librarian": {
+      "model": "kimi-k2.5",
+      "provider": "ollama"
+    },
+    "explore": {
+      "model": "grok-code-fast-1",
+      "provider": "ollama"
+    }
+  },
+
+  // ============================================================================
+  // CATEGORIES
+  // ============================================================================
+  // Category-based model routing for task() dispatch
+  // Full definitions in .opencode/config/categories.json
+  "categories": {
+    "visual-engineering": {
+      "model": "gemini-3-flash-preview:latest",
+      "provider": "ollama"
+    },
+    "ultrabrain": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    },
+    "artistry": {
+      "model": "gemini-3-flash-preview:latest",
+      "provider": "ollama"
+    },
+    "quick": {
+      "model": "glm-4.7:cloud",
+      "provider": "ollama"
+    },
+    "deep": {
+      "model": "qwen3-coder-next:cloud",
+      "provider": "ollama"
+    },
+    "unspecified-low": {
+      "model": "qwen3-coder-next:cloud",
+      "provider": "ollama"
+    },
+    "unspecified-high": {
+      "model": "deepseek-v3.1:671b-cloud",
+      "provider": "ollama"
+    },
+    "writing": {
+      "model": "kimi-k2.5:cloud",
+      "provider": "ollama"
+    }
+  },
+
+  // ============================================================================
+  // DISABLED FEATURES
+  // ============================================================================
+  // Disable specific components by name
+  "disabled_agents": [],
+  "disabled_hooks": [],
+  "disabled_commands": [],
+  "disabled_skills": [],
+
+  // ============================================================================
+  // MCP SERVERS
+  // ============================================================================
+  // Additional MCP servers (beyond built-in: websearch, context7, grep_app)
+  "mcps": {
+    // Example: Custom MCP server
+    // "my-server": {
+    //   "command": "npx",
+    //   "args": ["-y", "my-mcp-server"]
+    // }
+  },
+
+  // ============================================================================
+  // EXPERIMENTAL
+  // ============================================================================
+  "experimental": {
+    // Enable verbose logging for debugging
+    "debug_logging": false
+  }
+}

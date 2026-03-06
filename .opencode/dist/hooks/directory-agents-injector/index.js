@@ -1,0 +1,90 @@
+/**
+ * Directory Agents Injector Hook
+ *
+ * Injects directory-level AGENTS.md content into file reads.
+ */
+import { log } from "../../shared/logger";
+import * as path from "path";
+import * as fs from "fs";
+/**
+ * Create the directory agents injector hook.
+ */
+export function createDirectoryAgentsInjectorHook(ctx, _modelCacheState) {
+    const sessionCaches = new Map();
+    /**
+     * Find AGENTS.md files in parent directories.
+     */
+    function findAgentsFiles(filePath) {
+        const agentsFiles = [];
+        const workspaceRoot = ctx.directory;
+        let currentDir = path.dirname(filePath);
+        while (currentDir.startsWith(workspaceRoot)) {
+            const agentsPath = path.join(currentDir, "AGENTS.md");
+            if (fs.existsSync(agentsPath)) {
+                agentsFiles.push(agentsPath);
+            }
+            if (currentDir === workspaceRoot)
+                break;
+            currentDir = path.dirname(currentDir);
+        }
+        return agentsFiles;
+    }
+    /**
+     * Inject agents content.
+     */
+    async function processFilePathForAgentsInjection(filePath, sessionID, output) {
+        const cache = sessionCaches.get(sessionID) ?? new Set();
+        const agentsFiles = findAgentsFiles(filePath);
+        if (agentsFiles.length === 0)
+            return;
+        // Only inject if not already cached
+        for (const agentsPath of agentsFiles) {
+            if (cache.has(agentsPath))
+                continue;
+            try {
+                const content = fs.readFileSync(agentsPath, "utf-8");
+                // Truncate long content
+                const truncated = content.length > 3000
+                    ? content.substring(0, 3000) + "\n... (truncated)"
+                    : content;
+                output.output += `\n\n## <agents-context file="${path.relative(ctx.directory, agentsPath)}">\n`;
+                output.output += "```\n" + truncated + "\n```\n";
+                output.output += "</agents-context>\n";
+                cache.add(agentsPath);
+            }
+            catch (err) {
+                log("[directory-agents-injector] Failed to read agents file", { agentsPath, error: String(err) });
+            }
+        }
+        sessionCaches.set(sessionID, cache);
+    }
+    const toolExecuteAfter = async (input, output) => {
+        if (input.tool.toLowerCase() === "read") {
+            await processFilePathForAgentsInjection(output.title, input.sessionID, output);
+        }
+    };
+    const toolExecuteBefore = async (_input, _output) => {
+        // No-op
+    };
+    const event = async ({ event }) => {
+        const props = event.properties;
+        if (event.type === "session.deleted") {
+            const sessionInfo = props?.info;
+            if (sessionInfo?.id) {
+                sessionCaches.delete(sessionInfo.id);
+            }
+        }
+        if (event.type === "session.compacted") {
+            const sessionID = (props?.sessionID ?? props?.info?.id);
+            if (sessionID) {
+                sessionCaches.delete(sessionID);
+            }
+        }
+    };
+    return {
+        "tool.execute.before": toolExecuteBefore,
+        "tool.execute.after": toolExecuteAfter,
+        event,
+    };
+}
+//# sourceMappingURL=index.js.map

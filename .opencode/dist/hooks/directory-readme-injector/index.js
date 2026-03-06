@@ -1,0 +1,88 @@
+/**
+ * Directory README Injector Hook
+ *
+ * Injects directory README.md content into file reads.
+ */
+import { log } from "../../shared/logger";
+import * as path from "path";
+import * as fs from "fs";
+/**
+ * Create the directory readme injector hook.
+ */
+export function createDirectoryReadmeInjectorHook(ctx, _modelCacheState) {
+    const sessionCaches = new Map();
+    /**
+     * Find README.md files in parent directories.
+     */
+    function findReadmeFiles(filePath) {
+        const readmeFiles = [];
+        const workspaceRoot = ctx.directory;
+        let currentDir = path.dirname(filePath);
+        while (currentDir.startsWith(workspaceRoot)) {
+            const readmePath = path.join(currentDir, "README.md");
+            if (fs.existsSync(readmePath)) {
+                readmeFiles.push(readmePath);
+            }
+            if (currentDir === workspaceRoot)
+                break;
+            currentDir = path.dirname(currentDir);
+        }
+        return readmeFiles;
+    }
+    /**
+     * Inject readme content.
+     */
+    async function processFilePathForReadmeInjection(filePath, sessionID, output) {
+        const cache = sessionCaches.get(sessionID) ?? new Set();
+        const readmeFiles = findReadmeFiles(filePath);
+        if (readmeFiles.length === 0)
+            return;
+        for (const readmePath of readmeFiles) {
+            if (cache.has(readmePath))
+                continue;
+            try {
+                const content = fs.readFileSync(readmePath, "utf-8");
+                const truncated = content.length > 2000
+                    ? content.substring(0, 2000) + "\n... (truncated)"
+                    : content;
+                output.output += `\n\n## <readme-context file="${path.relative(ctx.directory, readmePath)}">\n`;
+                output.output += "```\n" + truncated + "\n```\n";
+                output.output += "</readme-context>\n";
+                cache.add(readmePath);
+            }
+            catch (err) {
+                log("[directory-readme-injector] Failed to read readme", { readmePath, error: String(err) });
+            }
+        }
+        sessionCaches.set(sessionID, cache);
+    }
+    const toolExecuteAfter = async (input, output) => {
+        if (input.tool.toLowerCase() === "read") {
+            await processFilePathForReadmeInjection(output.title, input.sessionID, output);
+        }
+    };
+    const toolExecuteBefore = async (_input, _output) => {
+        // No-op
+    };
+    const event = async ({ event }) => {
+        const props = event.properties;
+        if (event.type === "session.deleted") {
+            const sessionInfo = props?.info;
+            if (sessionInfo?.id) {
+                sessionCaches.delete(sessionInfo.id);
+            }
+        }
+        if (event.type === "session.compacted") {
+            const sessionID = (props?.sessionID ?? props?.info?.id);
+            if (sessionID) {
+                sessionCaches.delete(sessionID);
+            }
+        }
+    };
+    return {
+        "tool.execute.before": toolExecuteBefore,
+        "tool.execute.after": toolExecuteAfter,
+        event,
+    };
+}
+//# sourceMappingURL=index.js.map
