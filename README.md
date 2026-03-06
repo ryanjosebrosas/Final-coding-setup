@@ -11,7 +11,7 @@ Building software with AI is chaotic. Models hallucinate, lose context between s
 | Problem | Solution |
 |---------|----------|
 | **Context Loss** | Session handoff via `.agents/context/next-command.md` — every session knows exactly where you left off |
-| **Cost Overruns** | Model tiering — Opus orchestrates, Codex executes, GLM-5 handles utilities |
+| **Cost Overruns** | Model tiering — Opus orchestrates, Codex executes, GLM-5:cloud handles utilities |
 | **Quality Issues** | PIV Loop with mandatory planning and review gates before any code ships |
 
 ---
@@ -44,7 +44,7 @@ Building software with AI is chaotic. Models hallucinate, lose context between s
 │                                                                              │
 │  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐       │
 │  │     Explore      │    │    Librarian     │    │      Atlas       │       │
-│  │     (GLM-5)      │    │     (GLM-5)      │    │     (GLM-5)      │       │
+│  │  (GLM-5:cloud)   │    │  (GLM-5:cloud)   │    │  (GLM-5:cloud)   │       │
 │  │  Codebase Grep   │    │  External Docs   │    │  Todo Tracking   │       │
 │  └──────────────────┘    └──────────────────┘    └──────────────────┘       │
 │                                                                              │
@@ -63,7 +63,7 @@ Building software with AI is chaotic. Models hallucinate, lose context between s
 | **Orchestration** | Claude Opus 4.5 | Sisyphus |
 | **Consultation** | Claude Opus 4.5 | Oracle, Metis, Momus |
 | **Execution** | GPT-5.3-Codex | Hephaestus, Sisyphus-Junior |
-| **Utility** | GLM-5 | Atlas, Librarian, Explore |
+| **Utility** | GLM-5:cloud | Atlas, Librarian, Explore |
 | **Vision** | Gemini-3-Flash | Multimodal-Looker |
 
 ---
@@ -142,9 +142,9 @@ Every feature follows **Plan → Implement → Validate**. No exceptions.
 | **Momus** | Claude Opus 4.5 | Plan completeness review | Read-only |
 | **Hephaestus** | GPT-5.3-Codex | Deep autonomous implementation | Full (no delegation) |
 | **Sisyphus-Junior** | GPT-5.3-Codex | Category-dispatched execution | Full (no delegation) |
-| **Atlas** | GLM-5 | Todo tracking, progress management | Full (no delegation) |
-| **Explore** | GLM-5 | Internal codebase grep | Read-only |
-| **Librarian** | GLM-5 | External documentation search | Read-only |
+| **Atlas** | GLM-5:cloud | Todo tracking, progress management | Full (no delegation) |
+| **Explore** | GLM-5:cloud | Internal codebase grep | Read-only |
+| **Librarian** | GLM-5:cloud | External documentation search | Read-only |
 | **Multimodal-Looker** | Gemini-3-Flash | PDF/image analysis | Vision-only |
 
 ### Permission Levels
@@ -199,7 +199,7 @@ task(
 
 ### Token-Conscious Routing
 
-**Opus orchestrates. Codex executes. GLM-5 researches.**
+**Opus orchestrates. Codex executes. GLM-5:cloud researches.**
 
 | Task | Route To | NOT |
 |------|----------|-----|

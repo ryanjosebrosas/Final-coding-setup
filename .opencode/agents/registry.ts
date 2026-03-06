@@ -80,17 +80,17 @@ export const PERMISSIONS = {
 
 export const FALLBACK_CHAINS = {
   // Orchestrator (Opus only)
-  sisyphus: ["glm-5"],
+  sisyphus: ["ollama/glm-5:cloud"],
 
-  // Execution/Analysis agents (glm-5 primary)
-  hephaestus: ["glm-5"],
-  oracle: ["glm-5"],
-  momus: ["glm-5"],
-  metis: ["glm-5"],
-  atlas: ["glm-5"],
-  librarian: ["glm-5"],
-  explore: ["glm-5"],
-  multimodalLooker: ["glm-5"],
+  // Execution/Analysis agents (glm-5:cloud primary)
+  hephaestus: ["ollama/glm-5:cloud"],
+  oracle: ["ollama/glm-5:cloud"],
+  momus: ["ollama/glm-5:cloud"],
+  metis: ["ollama/glm-5:cloud"],
+  atlas: ["ollama/glm-5:cloud"],
+  librarian: ["ollama/glm-5:cloud"],
+  explore: ["ollama/glm-5:cloud"],
+  multimodalLooker: ["ollama/glm-5:cloud"],
 
   // Inherited from category dispatch
   sisyphusJunior: [],
@@ -132,7 +132,7 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     displayName: "Atlas — Todo List Conductor",
     description: "Manages todo list and tracks progress. Ensures tasks don't fall through cracks and accumulates wisdom across sessions.",
     category: "writing",
-    model: "glm-5",
+    model: "ollama/glm-5:cloud",
     temperature: 0.1,
     mode: "primary",
     permissions: PERMISSIONS.full,
@@ -197,7 +197,7 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     displayName: "Librarian — External Documentation",
     description: "Searches external documentation and finds implementation examples from real repositories.",
     category: "writing",
-    model: "glm-5",
+    model: "ollama/glm-5:cloud",
     temperature: 0.1,
     mode: "subagent",
     permissions: PERMISSIONS.readOnly,
@@ -211,7 +211,7 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     displayName: "Explore — Internal Codebase Grep",
     description: "Fast contextual grep for the internal codebase. Find files, extract patterns, discover implementations.",
     category: "deep",
-    model: "glm-5",
+    model: "ollama/glm-5:cloud",
     temperature: 0.1,
     mode: "subagent",
     permissions: PERMISSIONS.readOnly,

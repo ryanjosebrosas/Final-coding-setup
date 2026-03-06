@@ -333,7 +333,7 @@ Each category is configured with a model optimized for that domain. Read the des
 #### Available Skills (via `skill` tool)
 
 **Built-in**: playwright, frontend-ui-ux, git-master, dev-browser
-**⚡ YOUR SKILLS (PRIORITY)**: code-loop (project), code-review (project), code-review-fix (project), commit (project), council (project), decompose (project), execute (project), final-review (project), mvp (project), pillars (project), planning-methodology (project), pr (project), prd (project), prime (project), system-review (project), code-loop (project), code-review (project), code-review-fix (project), commit (project), council (project), decompose (project), execute (project), final-review (project), mvp (project), pillars (project), planning-methodology (project), pr (project), prd (project), prime (project), system-review (project), validation/validation/code-review (project), validation/validation/code-review-fix (project), validation/validation/execution-report (project), validation/validation/system-review (project)
+**⚡ YOUR SKILLS (PRIORITY)**: agent-browser (project), code-loop (project), code-review (project), code-review-fix (project), commit (project), council (project), decompose (project), execute (project), mvp (project), pillars (project), planning-methodology (project), pr (project), prd (project), prime (project), system-review (project), validation/validation/code-review (project), validation/validation/code-review-fix (project), validation/validation/execution-report (project), validation/validation/system-review (project)
 
 > User-installed skills OVERRIDE built-in defaults. ALWAYS prefer YOUR SKILLS when domain matches.
 > Full skill descriptions → use the `skill` tool to check before EVERY delegation.
@@ -415,13 +415,13 @@ If a task decomposes into 4 independent units, spawn 4 agents simultaneously —
 |-------|--------------|-------|------|------|-------------|----------|---------|
 | `sisyphus` | Sisyphus — Main Orchestrator | claude-opus-4-5 | 0.1 | all | full | unspecified-high | Primary orchestrator: workflow management, delegation, session continuity |
 | `hephaestus` | Hephaestus — Deep Autonomous Worker | gpt-5.3-codex | 0.1 | all | full | ultrabrain | Autonomous problem-solver for genuinely difficult, logic-heavy tasks |
-| `atlas` | Atlas — Todo List Conductor | glm-5 | 0.1 | primary | full-no-task | writing | Todo management, progress tracking, wisdom accumulation |
+| `atlas` | Atlas — Todo List Conductor | glm-5:cloud | 0.1 | primary | full-no-task | writing | Todo management, progress tracking, wisdom accumulation |
 | `oracle` | Oracle — Architecture Consultant | claude-opus-4-5 | 0.1 | subagent | read-only | ultrabrain | Read-only architecture consultation, debugging help, tradeoffs |
 | `metis` | Metis — Pre-Planning Gap Analyzer | claude-opus-4-5 | 0.3 | subagent | read-only | artistry | Identifies hidden ambiguities, AI failure points before planning |
 | `momus` | Momus — Plan Reviewer | claude-opus-4-5 | 0.1 | subagent | read-only | ultrabrain | Ruthless plan completeness verification, rejects vague plans |
 | `sisyphus-junior` | Sisyphus-Junior — Category Executor | gpt-5.3-codex | 0.1 | all | full-no-task | inherited | Category-dispatched executor with MUST DO/MUST NOT DO constraints |
-| `librarian` | Librarian — External Documentation | glm-5 | 0.1 | subagent | read-only | writing | External documentation search, implementation examples from OSS |
-| `explore` | Explore — Internal Codebase Grep | glm-5 | 0.1 | subagent | read-only | deep | Fast internal codebase grep, pattern discovery, file location |
+| `librarian` | Librarian — External Documentation | glm-5:cloud | 0.1 | subagent | read-only | writing | External documentation search, implementation examples from OSS |
+| `explore` | Explore — Internal Codebase Grep | glm-5:cloud | 0.1 | subagent | read-only | deep | Fast internal codebase grep, pattern discovery, file location |
 | `multimodal-looker` | Multimodal-Looker — PDF/Image Analysis | gemini-3-flash-preview | 0.1 | subagent | vision-only | unspecified-low | PDF/image analysis, diagram interpretation, visual content extraction |
 
 ### Permission Levels
@@ -445,16 +445,16 @@ If a task decomposes into 4 independent units, spawn 4 agents simultaneously —
 
 | Agent | Primary Model | Fallback |
 |-------|---------------|----------|
-| sisyphus | claude-opus-4-5 | glm-5 |
-| hephaestus | gpt-5.3-codex | glm-5 |
-| oracle | claude-opus-4-5 | glm-5 |
-| librarian | glm-5 | glm-5 |
-| explore | glm-5 | glm-5 |
-| metis | claude-opus-4-5 | glm-5 |
-| momus | claude-opus-4-5 | glm-5 |
-| atlas | glm-5 | glm-5 |
+| sisyphus | claude-opus-4-5 | glm-5:cloud |
+| hephaestus | gpt-5.3-codex | glm-5:cloud |
+| oracle | claude-opus-4-5 | glm-5:cloud |
+| librarian | glm-5:cloud | glm-5:cloud |
+| explore | glm-5:cloud | glm-5:cloud |
+| metis | claude-opus-4-5 | glm-5:cloud |
+| momus | claude-opus-4-5 | glm-5:cloud |
+| atlas | glm-5:cloud | glm-5:cloud |
 | sisyphus-junior | gpt-5.3-codex | — |
-| multimodal-looker | gemini-3-flash-preview | glm-5 |
+| multimodal-looker | gemini-3-flash-preview | glm-5:cloud |
 
 ### When to Use Each Agent
 

@@ -31,15 +31,15 @@
       "provider": "anthropic"
     },
     "librarian": {
-      "model": "glm-5",
+      "model": "glm-5:cloud",
       "provider": "ollama"
     },
     "explore": {
-      "model": "glm-5",
+      "model": "glm-5:cloud",
       "provider": "ollama"
     },
     "atlas": {
-      "model": "glm-5",
+      "model": "glm-5:cloud",
       "provider": "ollama"
     }
   },
