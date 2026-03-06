@@ -1,0 +1,118 @@
+{
+  // OhMyOpenCode Plugin Configuration
+  // https://github.com/code-yeongyu/oh-my-opencode
+  //
+  // This file configures agents, categories, hooks, and MCP servers.
+  // Project-level settings override user-level (~/.config/opencode/oh-my-opencode.jsonc)
+
+  // ============================================================================
+  // AGENTS
+  // ============================================================================
+  // Override agent models or disable specific agents
+  //
+  // Model tier strategy:
+  //   Opus    → /planning command (via command-model-router frontmatter) + Oracle + Momus
+  //   Sonnet  → Sisyphus (main session), Metis
+  //   Codex   → Hephaestus (deep autonomous execution)
+  //   GLM-5   → Librarian, Explore, Atlas (cheap utility)
+  "agents": {
+    // Main orchestrator: Sonnet for daily driving.
+    // Opus activates only when /planning is invoked (command-model-router hook).
+    "sisyphus": {
+      "model": "anthropic/claude-sonnet-4-6"
+    },
+    "hephaestus": {
+      "model": "openai/gpt-5.3-codex"
+    },
+    // Architecture consultation: Opus for deep tradeoff reasoning
+    "oracle": {
+      "model": "anthropic/claude-opus-4-5"
+    },
+    // Gap analysis: Sonnet is sufficient for pre-planning ambiguity detection
+    "metis": {
+      "model": "anthropic/claude-sonnet-4-6"
+    },
+    // Plan review: Opus for ruthless completeness validation
+    "momus": {
+      "model": "anthropic/claude-opus-4-5"
+    },
+    "librarian": {
+      "model": "ollama/glm-5:cloud"
+    },
+    "explore": {
+      "model": "ollama/glm-5:cloud"
+    },
+    "atlas": {
+      "model": "ollama/glm-5:cloud"
+    }
+  },
+
+  // ============================================================================
+  // CATEGORIES
+  // ============================================================================
+  // Category-based model routing for task() dispatch
+  // All categories use gpt-5.3-codex for execution
+  "categories": {
+    "visual-engineering": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    },
+    "ultrabrain": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    },
+    "artistry": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    },
+    "quick": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    },
+    "deep": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    },
+    "unspecified-low": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    },
+    "unspecified-high": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    },
+    "writing": {
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
+    }
+  },
+
+  // ============================================================================
+  // DISABLED FEATURES
+  // ============================================================================
+  // Disable specific components by name
+  "disabled_agents": [],
+  "disabled_hooks": [],
+  "disabled_commands": [],
+  "disabled_skills": [],
+
+  // ============================================================================
+  // MCP SERVERS
+  // ============================================================================
+  // Additional MCP servers (beyond built-in: websearch, context7, grep_app)
+  "mcps": {
+    // Example: Custom MCP server
+    // "my-server": {
+    //   "command": "npx",
+    //   "args": ["-y", "my-mcp-server"]
+    // }
+  },
+
+  // ============================================================================
+  // EXPERIMENTAL
+  // ============================================================================
+  "experimental": {
+    // Enable verbose logging for debugging
+    "debug_logging": false
+  }
+}

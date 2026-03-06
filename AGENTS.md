@@ -413,12 +413,12 @@ If a task decomposes into 4 independent units, spawn 4 agents simultaneously —
 
 | Agent | Display Name | Model | Temp | Mode | Permissions | Category | Purpose |
 |-------|--------------|-------|------|------|-------------|----------|---------|
-| `sisyphus` | Sisyphus — Main Orchestrator | claude-opus-4-5 | 0.1 | all | full | unspecified-high | Primary orchestrator: workflow management, delegation, session continuity |
+| `sisyphus` | Sisyphus — Main Orchestrator | claude-sonnet-4-6 | 0.1 | all | full | unspecified-high | Primary orchestrator: workflow management, delegation, session continuity |
 | `hephaestus` | Hephaestus — Deep Autonomous Worker | gpt-5.3-codex | 0.1 | all | full | ultrabrain | Autonomous problem-solver for genuinely difficult, logic-heavy tasks |
 | `atlas` | Atlas — Todo List Conductor | glm-5:cloud | 0.1 | primary | full-no-task | writing | Todo management, progress tracking, wisdom accumulation |
-| `oracle` | Oracle — Architecture Consultant | claude-opus-4-5 | 0.1 | subagent | read-only | ultrabrain | Read-only architecture consultation, debugging help, tradeoffs |
-| `metis` | Metis — Pre-Planning Gap Analyzer | claude-opus-4-5 | 0.3 | subagent | read-only | artistry | Identifies hidden ambiguities, AI failure points before planning |
-| `momus` | Momus — Plan Reviewer | claude-opus-4-5 | 0.1 | subagent | read-only | ultrabrain | Ruthless plan completeness verification, rejects vague plans |
+| `oracle` | Oracle — Architecture Consultant | claude-sonnet-4-6 | 0.1 | subagent | read-only | ultrabrain | Read-only architecture consultation, debugging help, tradeoffs |
+| `metis` | Metis — Pre-Planning Gap Analyzer | claude-sonnet-4-6 | 0.3 | subagent | read-only | artistry | Identifies hidden ambiguities, AI failure points before planning |
+| `momus` | Momus — Plan Reviewer | claude-sonnet-4-6 | 0.1 | subagent | read-only | ultrabrain | Ruthless plan completeness verification, rejects vague plans |
 | `sisyphus-junior` | Sisyphus-Junior — Category Executor | gpt-5.3-codex | 0.1 | all | full-no-task | inherited | Category-dispatched executor with MUST DO/MUST NOT DO constraints |
 | `librarian` | Librarian — External Documentation | glm-5:cloud | 0.1 | subagent | read-only | writing | External documentation search, implementation examples from OSS |
 | `explore` | Explore — Internal Codebase Grep | glm-5:cloud | 0.1 | subagent | read-only | deep | Fast internal codebase grep, pattern discovery, file location |
@@ -445,13 +445,13 @@ If a task decomposes into 4 independent units, spawn 4 agents simultaneously —
 
 | Agent | Primary Model | Fallback |
 |-------|---------------|----------|
-| sisyphus | claude-opus-4-5 | glm-5:cloud |
+| sisyphus | claude-sonnet-4-6 | glm-5:cloud |
 | hephaestus | gpt-5.3-codex | glm-5:cloud |
-| oracle | claude-opus-4-5 | glm-5:cloud |
+| oracle | claude-sonnet-4-6 | glm-5:cloud |
 | librarian | glm-5:cloud | glm-5:cloud |
 | explore | glm-5:cloud | glm-5:cloud |
-| metis | claude-opus-4-5 | glm-5:cloud |
-| momus | claude-opus-4-5 | glm-5:cloud |
+| metis | claude-sonnet-4-6 | glm-5:cloud |
+| momus | claude-sonnet-4-6 | glm-5:cloud |
 | atlas | glm-5:cloud | glm-5:cloud |
 | sisyphus-junior | gpt-5.3-codex | — |
 | multimodal-looker | gemini-3-flash-preview | glm-5:cloud |
@@ -742,7 +742,7 @@ If the user's approach seems problematic:
 **HARD RULE — /planning Before ALL Implementation** — EVERY feature, fix, or non-trivial change MUST go through `/planning` first. The plan MUST be reviewed and approved by the user before ANY implementation begins. No exceptions. No "quick fixes." No "I'll just do this one thing." The sequence is ALWAYS: `/planning` → user reviews plan → user approves → **choose execution method**. Jumping straight to code is a VIOLATION even if the task seems simple.
 
 **MODEL TIERS — Use the right model for the task:**
-- **Opus** (`claude-opus-4-6`) → orchestration & high-level decisions: `/mvp`, `/prd`, `/council`, architecture decisions
+- **Opus** (`claude-sonnet-4-6`) → orchestration & high-level decisions: `/mvp`, `/prd`, `/council`, architecture decisions
 - **Sonnet** (`claude-sonnet-4-6`) → planning & review: `/planning`, `/code-review`, `/code-loop`, `/system-review`, `/pr`, `/final-review`
 - **Haiku** (`claude-haiku-4-5-20251001`) → retrieval & light tasks: `/prime`, RAG queries, `/commit`, quick checks
 - **Execution Agent** → implementation: YOU choose (manual, Codex, aider, Claude Code, etc.)

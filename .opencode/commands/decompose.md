@@ -1,6 +1,6 @@
 ---
 description: Deep-research one infrastructure pillar and produce a spec file for /planning
-model: anthropic/claude-opus-4-5
+model: anthropic/claude-opus-4-6
 argument-hint: <pillar-name-or-number>
 ---
 

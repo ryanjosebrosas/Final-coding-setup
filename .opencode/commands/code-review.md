@@ -1,6 +1,6 @@
 ---
 description: Technical code review for quality and bugs that runs pre-commit
-model: ollama/deepseek-v3.1:671b-cloud
+model: openai/gpt-5.3-codex
 ---
 
 # Code Review: Find Bugs, Security Issues, and Quality Problems

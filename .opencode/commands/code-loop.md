@@ -1,6 +1,6 @@
 ---
 description: Automated review → fix → review loop until clean
-model: ollama/deepseek-v3.1:671b-cloud
+model: openai/gpt-5.3-codex
 ---
 
 # Code Loop: Automated Fix Loop

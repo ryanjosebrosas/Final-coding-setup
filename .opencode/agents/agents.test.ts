@@ -3,9 +3,69 @@
 // ============================================================================
 
 import { describe, it, expect } from "vitest"
-import { getAgentByName, getAllAgentNames, getAgentsByMode, getAgentsByCategory } from "./registry"
+import { readFileSync } from "fs"
+import { join } from "path"
+import { getAgentByName, getAllAgentNames, getAgentsByMode, getAgentsByCategory, AGENT_REGISTRY } from "./registry"
 import { resolveAgentModel, isAgentAvailable, hasPermission } from "./resolve-agent"
 import { getPermissionLevel, getPermissions, canUseTool } from "./permissions"
+
+// ============================================================================
+// EXPECTED MODEL ASSIGNMENTS
+// Source of truth: oh-my-opencode.jsonc (user overrides) + registry defaults
+// ============================================================================
+
+/**
+ * Expected effective model for each agent.
+ * oh-my-opencode.jsonc overrides take priority over registry defaults.
+ */
+const EXPECTED_AGENT_MODELS: Record<string, string> = {
+  // Overridden in oh-my-opencode.jsonc
+  sisyphus: "anthropic/claude-sonnet-4-6",
+  hephaestus: "openai/gpt-5.3-codex",
+  oracle: "anthropic/claude-opus-4-6",
+  metis: "anthropic/claude-sonnet-4-6",
+  momus: "anthropic/claude-opus-4-6",
+  librarian: "ollama/glm-5:cloud",
+  explore: "ollama/glm-5:cloud",
+  atlas: "ollama/glm-5:cloud",
+  // Registry defaults (not in oh-my-opencode.jsonc)
+  prometheus: "claude-opus-4-6",       // registry default
+  "sisyphus-junior": "gpt-5.3-codex",  // registry default
+  "multimodal-looker": "ollama-cloud/gemini-3-flash-preview", // registry default
+}
+
+/**
+ * Expected category model assignments from oh-my-opencode.jsonc.
+ */
+const EXPECTED_CATEGORY_MODELS: Record<string, { model: string; provider: string }> = {
+  "visual-engineering": { model: "openai/gpt-5.3-codex", provider: "openai" },
+  "ultrabrain":         { model: "openai/gpt-5.3-codex", provider: "openai" },
+  "artistry":           { model: "openai/gpt-5.3-codex", provider: "openai" },
+  "quick":              { model: "openai/gpt-5.3-codex", provider: "openai" },
+  "deep":               { model: "openai/gpt-5.3-codex", provider: "openai" },
+  "unspecified-low":    { model: "openai/gpt-5.3-codex", provider: "openai" },
+  "unspecified-high":   { model: "openai/gpt-5.3-codex", provider: "openai" },
+  "writing":            { model: "openai/gpt-5.3-codex", provider: "openai" },
+}
+
+// ============================================================================
+// HELPER: load oh-my-opencode.jsonc (strip comments for JSON.parse)
+// ============================================================================
+
+function loadOhMyOpenCodeConfig(): {
+  agents: Record<string, { model: string }>
+  categories: Record<string, { model: string; provider: string }>
+} {
+  const configPath = join(__dirname, "../oh-my-opencode.jsonc")
+  const raw = readFileSync(configPath, "utf-8")
+  // Strip single-line comments (// ...) — JSONC isn't valid JSON
+  const stripped = raw.replace(/\/\/[^\n]*/g, "")
+  return JSON.parse(stripped)
+}
+
+// ============================================================================
+// AGENT REGISTRY TESTS
+// ============================================================================
 
 describe("Agent Registry", () => {
   describe("getAgentByName", () => {
@@ -13,6 +73,7 @@ describe("Agent Registry", () => {
       expect(getAgentByName("sisyphus")).toBeDefined()
       expect(getAgentByName("oracle")).toBeDefined()
       expect(getAgentByName("librarian")).toBeDefined()
+      expect(getAgentByName("prometheus")).toBeDefined()
     })
 
     it("should return null for invalid names", () => {
@@ -20,11 +81,19 @@ describe("Agent Registry", () => {
       expect(getAgentByName("")).toBeNull()
     })
 
-    it("should return correct properties", () => {
+    it("should return correct properties for sisyphus", () => {
       const sisyphus = getAgentByName("sisyphus")
       expect(sisyphus?.category).toBe("unspecified-high")
-      expect(sisyphus?.model).toContain("opus")
+      expect(sisyphus?.model).toContain("sonnet")
       expect(sisyphus?.mode).toBe("all")
+    })
+
+    it("should return correct properties for prometheus", () => {
+      const prometheus = getAgentByName("prometheus")
+      expect(prometheus?.name).toBe("prometheus")
+      expect(prometheus?.mode).toBe("subagent")
+      expect(prometheus?.permissions.writeFile).toBe(false)
+      expect(prometheus?.permissions.editFile).toBe(false)
     })
   })
 
@@ -47,24 +116,27 @@ describe("Agent Registry", () => {
   })
 
   describe("getAgentsByMode", () => {
-    it("should return subagent mode agents", () => {
+    it("should return subagent mode agents (including 'all' mode)", () => {
       const subagents = getAgentsByMode("subagent")
       expect(subagents.length).toBeGreaterThan(0)
       expect(subagents.every(a => a.mode === "subagent" || a.mode === "all")).toBe(true)
     })
 
-    it("should return primary mode agents", () => {
-      const primary = getAgentsByMode("primary")
-      expect(primary.length).toBe(1) // Only Atlas
-      expect(primary[0].name).toBe("atlas")
+    it("should return primary mode agents — Atlas only", () => {
+      // Atlas is the only pure 'primary' mode agent
+      const primaryOnly = Object.values(AGENT_REGISTRY).filter(a => a.mode === "primary")
+      expect(primaryOnly.length).toBe(1)
+      expect(primaryOnly[0].name).toBe("atlas")
     })
   })
 
   describe("getAgentsByCategory", () => {
-    it("should return ultrabrain agents", () => {
+    it("should return ultrabrain agents (hephaestus, oracle, momus)", () => {
       const ultrabrain = getAgentsByCategory("ultrabrain")
-      expect(ultrabrain.length).toBe(2) // hephaestus, oracle
-      expect(ultrabrain.map(a => a.name)).toContain("hephaestus")
+      const names = ultrabrain.map(a => a.name)
+      expect(names).toContain("hephaestus")
+      expect(names).toContain("oracle")
+      expect(names).toContain("momus")
     })
 
     it("should return empty array for unknown category", () => {
@@ -72,6 +144,10 @@ describe("Agent Registry", () => {
     })
   })
 })
+
+// ============================================================================
+// AGENT RESOLUTION TESTS
+// ============================================================================
 
 describe("Agent Resolution", () => {
   describe("resolveAgentModel", () => {
@@ -93,7 +169,7 @@ describe("Agent Resolution", () => {
     })
 
     it("should use category default when specified", () => {
-      const result = resolveAgentModel({ category: "visual-engineering" })
+      const result = resolveAgentModel({ category: "ultrabrain" })
       expect(result?.source).toBe("category-default")
     })
   })
@@ -103,6 +179,7 @@ describe("Agent Resolution", () => {
       expect(isAgentAvailable("sisyphus")).toBe(true)
       expect(isAgentAvailable("oracle")).toBe(true)
       expect(isAgentAvailable("librarian")).toBe(true)
+      expect(isAgentAvailable("prometheus")).toBe(true)
     })
 
     it("should return false for unknown agents", () => {
@@ -120,14 +197,21 @@ describe("Agent Resolution", () => {
       expect(hasPermission("oracle", "write")).toBe(false)
       expect(hasPermission("librarian", "edit")).toBe(false)
       expect(hasPermission("momus", "bash")).toBe(false)
+      expect(hasPermission("prometheus", "write")).toBe(false)
+      expect(hasPermission("prometheus", "edit")).toBe(false)
     })
 
     it("should deny task tool for constrained agents", () => {
       expect(hasPermission("sisyphus-junior", "task")).toBe(false)
       expect(hasPermission("atlas", "task")).toBe(false)
+      expect(hasPermission("prometheus", "task")).toBe(false)
     })
   })
 })
+
+// ============================================================================
+// PERMISSIONS TESTS
+// ============================================================================
 
 describe("Permissions", () => {
   describe("getPermissionLevel", () => {
@@ -137,6 +221,10 @@ describe("Permissions", () => {
 
     it("should return read-only for Oracle", () => {
       expect(getPermissionLevel("oracle")).toBe("read-only")
+    })
+
+    it("should return read-only for Prometheus", () => {
+      expect(getPermissionLevel("prometheus")).toBe("read-only")
     })
 
     it("should return full-no-task for Atlas", () => {
@@ -172,11 +260,90 @@ describe("Permissions", () => {
     it("should allow read operations for all agents", () => {
       expect(canUseTool("sisyphus", "read")).toBe(true)
       expect(canUseTool("oracle", "read")).toBe(true)
+      expect(canUseTool("prometheus", "read")).toBe(true)
     })
 
     it("should deny write operations for read-only agents", () => {
       expect(canUseTool("oracle", "write")).toBe(false)
       expect(canUseTool("oracle", "edit")).toBe(false)
+      expect(canUseTool("prometheus", "write")).toBe(false)
+      expect(canUseTool("prometheus", "edit")).toBe(false)
+    })
+  })
+})
+
+// ============================================================================
+// OH-MY-OPENCODE.JSONC MODEL VERIFICATION TESTS
+// Verifies that the config file matches expected model assignments.
+// This catches silent model drift from migrations or manual edits.
+// ============================================================================
+
+describe("oh-my-opencode.jsonc — Model Verification", () => {
+  let config: ReturnType<typeof loadOhMyOpenCodeConfig>
+
+  beforeAll(() => {
+    config = loadOhMyOpenCodeConfig()
+  })
+
+  describe("Agent model overrides", () => {
+    const overriddenAgents = [
+      "sisyphus", "hephaestus", "oracle", "metis",
+      "momus", "librarian", "explore", "atlas",
+    ]
+
+    for (const agentName of overriddenAgents) {
+      it(`${agentName} should use model: ${EXPECTED_AGENT_MODELS[agentName]}`, () => {
+        const configured = config.agents[agentName]?.model
+        expect(configured, `Agent '${agentName}' missing from oh-my-opencode.jsonc`).toBeDefined()
+        expect(configured).toBe(EXPECTED_AGENT_MODELS[agentName])
+      })
+    }
+  })
+
+  describe("Category model assignments", () => {
+    for (const [category, expected] of Object.entries(EXPECTED_CATEGORY_MODELS)) {
+      it(`category '${category}' should use model: ${expected.provider}/${expected.model}`, () => {
+        const configured = config.categories[category]
+        expect(configured, `Category '${category}' missing from oh-my-opencode.jsonc`).toBeDefined()
+        expect(configured.model).toBe(expected.model)
+        expect(configured.provider).toBe(expected.provider)
+      })
+    }
+  })
+
+  describe("Registry vs config consistency", () => {
+    it("registry model for prometheus should contain 'opus'", () => {
+      const prometheus = getAgentByName("prometheus")
+      expect(prometheus?.model).toContain("opus")
+    })
+
+    it("sisyphus registry model should match 'sonnet' (overridden from opus → sonnet)", () => {
+      // Registry has claude-opus-4-5, but oh-my-opencode.jsonc overrides to sonnet
+      const configured = config.agents["sisyphus"]?.model
+      expect(configured).toContain("sonnet")
+    })
+
+    it("oracle and momus should be on claude-opus-4-6 (migrated from 4-5)", () => {
+      expect(config.agents["oracle"]?.model).toBe("anthropic/claude-opus-4-6")
+      expect(config.agents["momus"]?.model).toBe("anthropic/claude-opus-4-6")
+    })
+
+    it("utility agents (librarian, explore, atlas) should all use glm-5:cloud", () => {
+      for (const agent of ["librarian", "explore", "atlas"]) {
+        expect(config.agents[agent]?.model).toBe("ollama/glm-5:cloud")
+      }
+    })
+
+    it("all category overrides should use openai provider", () => {
+      for (const [category, cfg] of Object.entries(config.categories)) {
+        expect(cfg.provider, `Category '${category}' has wrong provider`).toBe("openai")
+      }
+    })
+
+    it("_migrations should record the opus 4-5 → 4-6 upgrade", () => {
+      const migrations = (config as any)._migrations as string[] | undefined
+      expect(migrations).toBeDefined()
+      expect(migrations?.some(m => m.includes("claude-opus-4-5") && m.includes("claude-opus-4-6"))).toBe(true)
     })
   })
 })

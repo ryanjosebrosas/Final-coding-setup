@@ -1,6 +1,6 @@
 ---
 description: Analyze implementation against plan with auto-diff, code-review integration, and memory suggestions
-model: ollama/deepseek-v3.1:671b-cloud
+model: openai/gpt-5.3-codex
 ---
 
 # System Review (Enhanced)

@@ -21,14 +21,14 @@ Categories optimize model selection for specific task types. Use the `category` 
 
 | Category | Model | Use For |
 |----------|-------|---------|
-| `visual-engineering` | Gemini 3 Pro | Frontend, UI/UX, styling, animations |
-| `ultrabrain` | GPT-5.3 Codex | Hard algorithms, architecture, complex logic |
-| `artistry` | Gemini 3 Pro | Creative solutions, unconventional approaches |
-| `quick` | Claude Haiku 4.5 | Trivial changes, typo fixes, simple modifications |
-| `deep` | Qwen 3.5 Plus | Investigation, research, debugging, trace |
-| `unspecified-low` | Claude Sonnet 4.6 | General low-stakes tasks |
-| `unspecified-high` | Claude Opus 4.6 | General high-stakes tasks |
-| `writing` | Kimi K2.5 | Documentation, prose, technical writing |
+| `visual-engineering` | openai/gpt-5.3-codex | Frontend, UI/UX, styling, animations |
+| `ultrabrain` | openai/gpt-5.3-codex | Hard algorithms, architecture, complex logic |
+| `artistry` | openai/gpt-5.3-codex | Creative solutions, unconventional approaches |
+| `quick` | openai/gpt-5.3-codex | Trivial changes, typo fixes, simple modifications |
+| `deep` | openai/gpt-5.3-codex | Investigation, research, debugging, trace |
+| `unspecified-low` | openai/gpt-5.3-codex | General low-stakes tasks |
+| `unspecified-high` | openai/gpt-5.3-codex | General high-stakes tasks |
+| `writing` | openai/gpt-5.3-codex | Documentation, prose, technical writing |
 
 ### Selection Gates
 
@@ -166,15 +166,18 @@ Slash commands trigger specific workflows.
 
 | Command | Model | Purpose |
 |---------|-------|---------|
-| `/prime` | Haiku | Load codebase context |
-| `/mvp` | Opus | Define product vision |
-| `/prd` | Opus | Create requirements document |
-| `/planning` | Opus | Interactive planning → task briefs |
-| `/execute` | Execution Agent | Implement from task brief |
-| `/code-loop` | Sonnet | Review → fix → review cycle |
-| `/final-review` | Sonnet | Human approval gate |
-| `/commit` | Haiku | Create conventional commit |
-| `/pr` | Sonnet | Create pull request |
+| `/prime` | ollama/glm-5:cloud | Load codebase context |
+| `/mvp` | anthropic/claude-opus-4-6 | Define product vision |
+| `/prd` | anthropic/claude-opus-4-6 | Create requirements document |
+| `/planning` | anthropic/claude-opus-4-6 | Interactive planning → task briefs |
+| `/execute` | openai/gpt-5.3-codex | Implement from task brief |
+| `/code-loop` | openai/gpt-5.3-codex | Review → fix → review cycle |
+| `/code-review` | openai/gpt-5.3-codex | Technical code review |
+| `/code-review-fix` | openai/gpt-5.3-codex | Apply fixes from review |
+| `/final-review` | openai/gpt-5.3-codex | Human approval gate |
+| `/system-review` | openai/gpt-5.3-codex | Divergence analysis |
+| `/commit` | ollama/glm-5:cloud | Create conventional commit |
+| `/pr` | openai/gpt-5.3-codex | Create pull request |
 
 ### Utility Commands
 

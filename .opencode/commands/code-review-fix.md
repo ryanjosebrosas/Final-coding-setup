@@ -1,6 +1,6 @@
 ---
 description: Process to fix bugs found in manual/AI code review
-model: ollama/deepseek-v3.1:671b-cloud
+model: openai/gpt-5.3-codex
 ---
 
 # Code Review Fix: Fix Issues from Review

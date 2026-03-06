@@ -24,7 +24,7 @@ Building software with AI is chaotic. Models hallucinate, lose context between s
 │                                                                              │
 │  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐       │
 │  │    Sisyphus      │    │      Oracle      │    │      Metis       │       │
-│  │  (Claude Opus)   │    │  (Claude Opus)   │    │  (Claude Opus)   │       │
+│  │  (claude-sonnet-4-6)   │    │  (claude-sonnet-4-6)   │    │  (claude-sonnet-4-6)   │       │
 │  │   Orchestrator   │───▶│   Consultation   │    │   Gap Analysis   │       │
 │  └────────┬─────────┘    └──────────────────┘    └──────────────────┘       │
 │           │                                                                  │
@@ -35,7 +35,7 @@ Building software with AI is chaotic. Models hallucinate, lose context between s
 │                                                                              │
 │  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐       │
 │  │   Hephaestus     │    │ Sisyphus-Junior  │    │      Momus       │       │
-│  │  (GPT-5.3-Codex) │    │  (GPT-5.3-Codex) │    │  (Claude Opus)   │       │
+│  │  (gpt-5.3-codex) │    │  (gpt-5.3-codex) │    │  (claude-sonnet-4-6)   │       │
 │  │   Deep Worker    │    │ Category Executor│    │  Plan Reviewer   │       │
 │  └──────────────────┘    └──────────────────┘    └──────────────────┘       │
 │                                                                              │
@@ -60,9 +60,9 @@ Building software with AI is chaotic. Models hallucinate, lose context between s
 
 | Role | Model | Agents |
 |------|-------|--------|
-| **Orchestration** | Claude Opus 4.5 | Sisyphus |
-| **Consultation** | Claude Opus 4.5 | Oracle, Metis, Momus |
-| **Execution** | GPT-5.3-Codex | Hephaestus, Sisyphus-Junior |
+| **Orchestration** | claude-sonnet-4-6 | Sisyphus |
+| **Consultation** | claude-sonnet-4-6 | Oracle, Metis, Momus |
+| **Execution** | gpt-5.3-codex | Hephaestus, Sisyphus-Junior |
 | **Utility** | GLM-5:cloud | Atlas, Librarian, Explore |
 | **Vision** | Gemini-3-Flash | Multimodal-Looker |
 
@@ -112,7 +112,7 @@ Every feature follows **Plan → Implement → Validate**. No exceptions.
                               ┌─────────────────┐
                               │    SISYPHUS     │
                               │  Orchestrator   │
-                              │ (Claude Opus)   │
+                              │ (claude-sonnet-4-6)   │
                               └────────┬────────┘
                                        │
            ┌───────────────────────────┼───────────────────────────┐
@@ -136,12 +136,12 @@ Every feature follows **Plan → Implement → Validate**. No exceptions.
 
 | Agent | Model | Role | Permissions |
 |-------|-------|------|-------------|
-| **Sisyphus** | Claude Opus 4.5 | Main orchestrator, workflow management | Full |
-| **Oracle** | Claude Opus 4.5 | Architecture consultation, debugging help | Read-only |
-| **Metis** | Claude Opus 4.5 | Pre-planning gap analysis | Read-only |
-| **Momus** | Claude Opus 4.5 | Plan completeness review | Read-only |
-| **Hephaestus** | GPT-5.3-Codex | Deep autonomous implementation | Full (no delegation) |
-| **Sisyphus-Junior** | GPT-5.3-Codex | Category-dispatched execution | Full (no delegation) |
+| **Sisyphus** | claude-sonnet-4-6 | Main orchestrator, workflow management | Full |
+| **Oracle** | claude-sonnet-4-6 | Architecture consultation, debugging help | Read-only |
+| **Metis** | claude-sonnet-4-6 | Pre-planning gap analysis | Read-only |
+| **Momus** | claude-sonnet-4-6 | Plan completeness review | Read-only |
+| **Hephaestus** | gpt-5.3-codex | Deep autonomous implementation | Full (no delegation) |
+| **Sisyphus-Junior** | gpt-5.3-codex | Category-dispatched execution | Full (no delegation) |
 | **Atlas** | GLM-5:cloud | Todo tracking, progress management | Full (no delegation) |
 | **Explore** | GLM-5:cloud | Internal codebase grep | Read-only |
 | **Librarian** | GLM-5:cloud | External documentation search | Read-only |
@@ -190,12 +190,12 @@ task(
 
 | Category | Model | Use For |
 |----------|-------|---------|
-| `visual-engineering` | GPT-5.3-Codex | Frontend, UI/UX, styling |
-| `ultrabrain` | GPT-5.3-Codex | Hard logic, algorithms |
-| `deep` | GPT-5.3-Codex | Autonomous problem-solving |
-| `quick` | GPT-5.3-Codex | Single file changes, typos |
-| `writing` | GPT-5.3-Codex | Documentation, prose |
-| `artistry` | GPT-5.3-Codex | Creative, non-standard solutions |
+| `visual-engineering` | claude-sonnet-4-6 | Frontend, UI/UX, styling |
+| `ultrabrain` | claude-sonnet-4-6 | Hard logic, algorithms |
+| `deep` | claude-sonnet-4-6 | Autonomous problem-solving |
+| `quick` | claude-sonnet-4-6 | Single file changes, typos |
+| `writing` | claude-sonnet-4-6 | Documentation, prose |
+| `artistry` | claude-sonnet-4-6 | Creative, non-standard solutions |
 
 ### Token-Conscious Routing
 
@@ -373,8 +373,8 @@ Session N+1: /prime → /commit → /pr   → END (shipped)
 
 The system uses these models (configure via your provider):
 
-- **Claude Opus 4.5** — Orchestration, consultation
-- **GPT-5.3-Codex** — Execution (all categories)
+- **Claude Sonnet 4.6** — Orchestration, consultation
+- **GPT-5.3-Codex** — Execution agents (Hephaestus, Sisyphus-Junior)
 - **GLM-5** — Utility agents (Ollama)
 - **Gemini-3-Flash** — Vision tasks
 
