@@ -29,7 +29,6 @@ const EXPECTED_AGENT_MODELS: Record<string, string> = {
   explore: "ollama/glm-5:cloud",
   atlas: "ollama/glm-5:cloud",
   // Registry defaults (not in oh-my-opencode.jsonc)
-  prometheus: "claude-opus-4-6",       // registry default
   "sisyphus-junior": "gpt-5.3-codex",  // registry default
   "multimodal-looker": "ollama-cloud/gemini-3-flash-preview", // registry default
 }
@@ -73,7 +72,7 @@ describe("Agent Registry", () => {
       expect(getAgentByName("sisyphus")).toBeDefined()
       expect(getAgentByName("oracle")).toBeDefined()
       expect(getAgentByName("librarian")).toBeDefined()
-      expect(getAgentByName("prometheus")).toBeDefined()
+      expect(getAgentByName("metis")).toBeDefined()
     })
 
     it("should return null for invalid names", () => {
@@ -88,26 +87,25 @@ describe("Agent Registry", () => {
       expect(sisyphus?.mode).toBe("all")
     })
 
-    it("should return correct properties for prometheus", () => {
-      const prometheus = getAgentByName("prometheus")
-      expect(prometheus?.name).toBe("prometheus")
-      expect(prometheus?.mode).toBe("subagent")
-      expect(prometheus?.permissions.writeFile).toBe(false)
-      expect(prometheus?.permissions.editFile).toBe(false)
+    it("should return correct properties for metis", () => {
+      const metis = getAgentByName("metis")
+      expect(metis?.name).toBe("metis")
+      expect(metis?.mode).toBe("subagent")
+      expect(metis?.permissions.writeFile).toBe(false)
+      expect(metis?.permissions.editFile).toBe(false)
     })
   })
 
   describe("getAllAgentNames", () => {
-    it("should return all 11 agent names", () => {
+    it("should return all 10 agent names", () => {
       const names = getAllAgentNames()
-      expect(names.length).toBe(11)
+      expect(names.length).toBe(10)
       expect(names).toContain("sisyphus")
       expect(names).toContain("hephaestus")
       expect(names).toContain("oracle")
       expect(names).toContain("metis")
       expect(names).toContain("momus")
       expect(names).toContain("atlas")
-      expect(names).toContain("prometheus")
       expect(names).toContain("sisyphus-junior")
       expect(names).toContain("librarian")
       expect(names).toContain("explore")
@@ -179,7 +177,7 @@ describe("Agent Resolution", () => {
       expect(isAgentAvailable("sisyphus")).toBe(true)
       expect(isAgentAvailable("oracle")).toBe(true)
       expect(isAgentAvailable("librarian")).toBe(true)
-      expect(isAgentAvailable("prometheus")).toBe(true)
+      expect(isAgentAvailable("metis")).toBe(true)
     })
 
     it("should return false for unknown agents", () => {
@@ -197,14 +195,14 @@ describe("Agent Resolution", () => {
       expect(hasPermission("oracle", "write")).toBe(false)
       expect(hasPermission("librarian", "edit")).toBe(false)
       expect(hasPermission("momus", "bash")).toBe(false)
-      expect(hasPermission("prometheus", "write")).toBe(false)
-      expect(hasPermission("prometheus", "edit")).toBe(false)
+      expect(hasPermission("metis", "write")).toBe(false)
+      expect(hasPermission("metis", "edit")).toBe(false)
     })
 
     it("should deny task tool for constrained agents", () => {
       expect(hasPermission("sisyphus-junior", "task")).toBe(false)
       expect(hasPermission("atlas", "task")).toBe(false)
-      expect(hasPermission("prometheus", "task")).toBe(false)
+      expect(hasPermission("metis", "task")).toBe(false)
     })
   })
 })
@@ -223,8 +221,8 @@ describe("Permissions", () => {
       expect(getPermissionLevel("oracle")).toBe("read-only")
     })
 
-    it("should return read-only for Prometheus", () => {
-      expect(getPermissionLevel("prometheus")).toBe("read-only")
+    it("should return read-only for Metis", () => {
+      expect(getPermissionLevel("metis")).toBe("read-only")
     })
 
     it("should return full-no-task for Atlas", () => {
@@ -260,14 +258,14 @@ describe("Permissions", () => {
     it("should allow read operations for all agents", () => {
       expect(canUseTool("sisyphus", "read")).toBe(true)
       expect(canUseTool("oracle", "read")).toBe(true)
-      expect(canUseTool("prometheus", "read")).toBe(true)
+      expect(canUseTool("metis", "read")).toBe(true)
     })
 
     it("should deny write operations for read-only agents", () => {
       expect(canUseTool("oracle", "write")).toBe(false)
       expect(canUseTool("oracle", "edit")).toBe(false)
-      expect(canUseTool("prometheus", "write")).toBe(false)
-      expect(canUseTool("prometheus", "edit")).toBe(false)
+      expect(canUseTool("metis", "write")).toBe(false)
+      expect(canUseTool("metis", "edit")).toBe(false)
     })
   })
 })
@@ -312,9 +310,9 @@ describe("oh-my-opencode.jsonc — Model Verification", () => {
   })
 
   describe("Registry vs config consistency", () => {
-    it("registry model for prometheus should contain 'opus'", () => {
-      const prometheus = getAgentByName("prometheus")
-      expect(prometheus?.model).toContain("opus")
+    it("registry model for momus should contain 'opus'", () => {
+      const momus = getAgentByName("momus")
+      expect(momus?.model).toContain("opus")
     })
 
     it("sisyphus registry model should match 'sonnet' (overridden from opus → sonnet)", () => {

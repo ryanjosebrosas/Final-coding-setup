@@ -79,15 +79,14 @@ export const PERMISSIONS = {
 // ============================================================================
 
 export const FALLBACK_CHAINS = {
-  // Orchestrator (Opus only)
+  // Orchestrator
   sisyphus: ["ollama/glm-5:cloud"],
 
-  // Execution/Analysis agents (glm-5:cloud primary)
+  // Execution/Analysis agents
   hephaestus: ["ollama/glm-5:cloud"],
   oracle: ["ollama/glm-5:cloud"],
   momus: ["ollama/glm-5:cloud"],
   metis: ["ollama/glm-5:cloud"],
-  prometheus: ["ollama/glm-5:cloud"],
   atlas: ["ollama/glm-5:cloud"],
   librarian: ["ollama/glm-5:cloud"],
   explore: ["ollama/glm-5:cloud"],
@@ -139,19 +138,6 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     permissions: PERMISSIONS.full,
     fallbackChain: FALLBACK_CHAINS.atlas,
     deniedTools: ["task", "call_omo_agent"],
-  },
-
-  prometheus: {
-    name: "prometheus",
-    displayName: "Prometheus — Strategic Interview Planner",
-    description: "Interview-mode planner that discovers requirements through Socratic questioning before planning begins. Merged into /planning command but retained as a standalone agent for direct invocation.",
-    category: "unspecified-high",
-    model: "anthropic/claude-opus-4-6",
-    temperature: 0.1,
-    mode: "subagent",
-    permissions: PERMISSIONS.readOnly,
-    fallbackChain: FALLBACK_CHAINS.prometheus,
-    deniedTools: ["write", "edit", "task"],
   },
 
   oracle: {
@@ -290,7 +276,6 @@ export const AGENT_NAMES: AgentName[] = [
   "sisyphus",
   "hephaestus",
   "atlas",
-  "prometheus",
   "oracle",
   "metis",
   "momus",

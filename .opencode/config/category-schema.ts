@@ -11,7 +11,7 @@ export const CategoryDefinitionSchema = z.object({
   model: z.string().describe("Model ID to route to"),
   provider: z.string().describe("Provider ID to use"),
   temperature: z.number().min(0).max(2).optional().default(0.5).describe("Temperature for model inference"),
-  description: z.string().describe("Human-readable description of the category"),
+  description: z.string().optional().describe("Human-readable description of the category"),
   useWhen: z.array(z.string()).optional().describe("When to use this category"),
   avoidWhen: z.array(z.string()).optional().describe("When NOT to use this category"),
   promptAppend: z.string().optional().describe("Prompt to append for this category"),

@@ -56,9 +56,13 @@ export function resolveAgentModel(options: ResolutionOptions): ResolvedAgent | n
   
   // 1. User override - explicit provider/model specified
   if (provider && model) {
-    const agent = agentName ? AGENT_REGISTRY[agentName] : null
+    const agent = agentName ? AGENT_REGISTRY[agentName] ?? null : null
+    if (!agent) {
+      console.warn(`Unknown agent for user override: ${agentName ?? "(none)"}`)
+      return null
+    }
     return {
-      agent: agent!,
+      agent,
       model,
       provider,
       source: "user-override",
@@ -105,10 +109,10 @@ export function resolveAgentModel(options: ResolutionOptions): ResolvedAgent | n
     }
   }
   
-  // 4. Fallback - use GLM-4.7 as system default
+  // 4. Fallback - use GLM-5:cloud as system default
   return {
     agent: AGENT_REGISTRY["sisyphus-junior"],
-    model: "glm-4.7",
+    model: "glm-5:cloud",
     provider: "ollama",
     source: "fallback",
   }
@@ -175,7 +179,7 @@ export function getAgentsForTask(taskType: string): AgentMetadata[] {
   // Map task types to suitable agents
   const taskAgentMap: Record<string, AgentName[]> = {
     "architecture": ["oracle", "metis"],
-    "planning": ["prometheus", "momus"],
+    "planning": ["momus"],
     "code-review": ["momus"],
     "research": ["librarian", "explore"],
     "execution": ["hephaestus", "sisyphus-junior"],
