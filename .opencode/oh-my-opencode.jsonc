@@ -19,15 +19,27 @@
       "provider": "openai"
     },
     "oracle": {
-      "model": "gpt-5.2",
-      "provider": "openai"
+      "model": "claude-opus-4-5",
+      "provider": "anthropic"
+    },
+    "metis": {
+      "model": "claude-opus-4-5",
+      "provider": "anthropic"
+    },
+    "momus": {
+      "model": "claude-opus-4-5",
+      "provider": "anthropic"
     },
     "librarian": {
-      "model": "kimi-k2.5",
+      "model": "glm-5",
       "provider": "ollama"
     },
     "explore": {
-      "model": "grok-code-fast-1",
+      "model": "glm-5",
+      "provider": "ollama"
+    },
+    "atlas": {
+      "model": "glm-5",
       "provider": "ollama"
     }
   },
@@ -36,39 +48,39 @@
   // CATEGORIES
   // ============================================================================
   // Category-based model routing for task() dispatch
-  // Full definitions in .opencode/config/categories.json
+  // All categories use gpt-5.3-codex for execution
   "categories": {
     "visual-engineering": {
-      "model": "gemini-3-flash-preview:latest",
-      "provider": "ollama"
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
     },
     "ultrabrain": {
       "model": "gpt-5.3-codex",
       "provider": "openai"
     },
     "artistry": {
-      "model": "gemini-3-flash-preview:latest",
-      "provider": "ollama"
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
     },
     "quick": {
-      "model": "glm-4.7:cloud",
-      "provider": "ollama"
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
     },
     "deep": {
-      "model": "qwen3-coder-next:cloud",
-      "provider": "ollama"
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
     },
     "unspecified-low": {
-      "model": "qwen3-coder-next:cloud",
-      "provider": "ollama"
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
     },
     "unspecified-high": {
-      "model": "deepseek-v3.1:671b-cloud",
-      "provider": "ollama"
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
     },
     "writing": {
-      "model": "kimi-k2.5:cloud",
-      "provider": "ollama"
+      "model": "gpt-5.3-codex",
+      "provider": "openai"
     }
   },
 
