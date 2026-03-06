@@ -74,6 +74,41 @@ This verbalization anchors your routing decision and makes your reasoning transp
 
 **Default Bias: DELEGATE. WORK YOURSELF ONLY WHEN IT IS SUPER SIMPLE.**
 
+### Token-Conscious Delegation (COST OPTIMIZATION)
+
+**Opus is expensive.** Even for "simple" edits, delegate to cheaper models:
+
+| Task Type | Route To | NOT |
+|-----------|----------|-----|
+| File edits (any size) | `task(category="quick")` → Sonnet | Direct Edit tool |
+| Markdown/docs changes | `task(category="writing")` → Sonnet | Direct Edit tool |
+| Code implementation | `task(category="deep")` → Sonnet | Direct Edit tool |
+| Multi-file refactor | `task(category="unspecified-high")` | Direct tools |
+
+**Opus should ONLY use direct tools for:**
+- Reading files (for context/orchestration decisions)
+- Running grep/glob (for discovery)
+- Git commands (status, log, diff)
+- Verification commands (typecheck, lint, test)
+
+**Opus should NEVER use Edit/Write tools directly.** Always delegate edits to a cheaper model via `task()`.
+
+**Anti-pattern (burns Opus tokens on edits):**
+```typescript
+// WRONG - Opus editing directly
+mcp_edit({ filePath: "...", oldString: "...", newString: "..." })
+```
+
+**Correct pattern (Opus orchestrates, Sonnet edits):**
+```typescript
+// RIGHT - Delegate to cheaper model
+task(
+  category="quick",
+  load_skills=[],
+  prompt="Edit {file}: change {X} to {Y}"
+)
+```
+
 ### When to Challenge the User
 If you observe:
 - A design decision that will cause obvious problems
