@@ -381,6 +381,162 @@ Status: 512 tests passing, TypeScript clean.
 
 ---
 
+## How it all connects: OpenCode + oh-my-opencode.jsonc + hooks
+
+This is the part most documentation skips — the actual wiring that makes the system run. Understanding it is what separates using the system from understanding it.
+
+### OpenCode CLI is the runtime
+
+Everything runs inside **OpenCode CLI** (`opencode run`). OpenCode is what handles model API calls, session management, tool execution, and slash command parsing. This framework is not a replacement for OpenCode — it is a configuration layer on top of it.
+
+When you run `opencode` in this project directory, OpenCode automatically:
+
+1. Reads `AGENTS.md` at the project root and injects it as system context for every session
+2. Loads `.opencode/` as the framework configuration directory
+3. Discovers slash commands from `.opencode/commands/*.md`
+4. Registers hooks from `.opencode/hooks/`
+5. Loads `oh-my-opencode.jsonc` for agent and category model overrides
+
+You do not wire any of this up manually. OpenCode's convention-based discovery handles it as long as the files exist in the right places.
+
+### AGENTS.md is the agent's brain
+
+`AGENTS.md` at the project root is the primary system prompt. It defines:
+
+- The agent identity (Sisyphus — the main orchestrator)
+- Behavioral rules: when to plan, when to delegate, when to ask
+- The intent routing map: what different user requests should trigger
+- The delegation system: how `task()` calls work with categories and skills
+- Every hard rule the agent must follow (never commit without asking, never suppress type errors, etc.)
+
+Every session starts with this injected as context. It is what gives the AI its personality, discipline, and workflow knowledge. Without it, OpenCode would just be a generic AI chat tool.
+
+### Slash commands are markdown files with frontmatter
+
+Each file in `.opencode/commands/` is a slash command. The frontmatter at the top specifies which model it runs on:
+
+```markdown
+---
+description: Prime agent with project context and auto-detect tech stack
+model: ollama/glm-5:cloud
+---
+
+# Prime: Load Project Context + Stack Detection
+...
+```
+
+When a user runs `/prime`, the `command-model-router` hook intercepts the message, reads the frontmatter `model:` field, and overrides the session model to `glm-5:cloud` for that command. This is how the model-tiering works automatically — cheap models for retrieval commands, expensive models for planning commands — without the user having to specify models manually.
+
+The body of each command file is the actual instruction set the model follows when that command runs. It is not code — it is structured natural language that the model interprets as a workflow specification.
+
+### oh-my-opencode.jsonc is the override layer
+
+`oh-my-opencode.jsonc` in the project root is OpenCode's user configuration file. This framework uses it for two things:
+
+**1. Agent model overrides**
+
+```jsonc
+{
+  "agents": {
+    "sisyphus": { "model": "anthropic/claude-sonnet-4-6" },
+    "oracle":   { "model": "anthropic/claude-opus-4-6" },
+    "librarian": { "model": "ollama/glm-5:cloud" }
+    // ...
+  }
+}
+```
+
+These override the default model each named agent uses. The agent names here correspond directly to the agent definitions in `.opencode/agents/registry.ts`. When Sisyphus delegates work to Oracle via `task(subagent_type="oracle")`, OpenCode looks up `oracle` in this config and uses `claude-opus-4-6`.
+
+**2. Category model assignments**
+
+```jsonc
+{
+  "categories": {
+    "quick":      { "model": "openai/gpt-5.3-codex", "provider": "openai" },
+    "deep":       { "model": "openai/gpt-5.3-codex", "provider": "openai" },
+    "ultrabrain": { "model": "openai/gpt-5.3-codex", "provider": "openai" }
+    // ...
+  }
+}
+```
+
+Categories are the other delegation path. Instead of routing by agent name (`subagent_type="oracle"`), you route by domain (`category="quick"`). The category system maps task domains to models. When Sisyphus runs `task(category="quick", ...)`, OpenCode looks up `quick` in this config and routes to `gpt-5.3-codex`.
+
+The category config is loaded and validated by `.opencode/config/load-categories.ts` using Zod schemas. Default category definitions live in code; `oh-my-opencode.jsonc` merges on top as user overrides.
+
+### How hooks wire into the session
+
+Hooks are TypeScript modules that OpenCode calls at specific lifecycle events. They hook into `tool.execute.before`, `tool.execute.after`, `chat.message`, and session events. The framework hooks enforce discipline automatically without user intervention:
+
+**`rules-injector`** — When the agent reads any file (`read`, `write`, `edit` tools), this hook walks up the directory tree looking for `AGENTS.md`, `.opencode/rules`, and similar files. It appends their content to the file read output as `<injected-context>`. This means the agent always has project rules in context when it touches files, even if it did not explicitly load them.
+
+**`command-model-router`** — Intercepts `chat.message` events. When it detects a slash command (`/prime`, `/planning`, etc.), it reads the corresponding `commands/*.md` frontmatter, extracts the `model:` field, and overrides the session model. This is the mechanism behind automatic model tiering.
+
+**`todo-continuation`** — OpenCode compacts context windows when they get long. This hook fires before compaction, serializes the current todo list, and restores it after. Without this, in-progress task lists would disappear when context compresses.
+
+**`category-skill-reminder`** — When the agent uses direct tools (`edit`, `write`, `bash`) instead of delegating via `task()`, this hook fires a system reminder: "You are doing delegatable work directly. Use `task(category=..., load_skills=...)` instead." This pushes the agent toward the cheaper, more appropriate delegation path.
+
+**`agent-usage-reminder`** — Similar to category-skill-reminder. When orchestrator agents use grep or search tools directly, this hook reminds them to use the `explore` or `librarian` subagents instead. Token-efficient and higher quality.
+
+**`pipeline-hook`** — At session start, reads `.agents/context/next-command.md` and emits a system reminder with the current pipeline state. This is what makes `/prime` able to tell you "you're at `executing-tasks`, task 2/4, run `/execute` next."
+
+All hooks are registered through the hook registry in `.opencode/hooks/index.ts` and execute in priority tier order (Continuation → Session → Tool-Guard → Transform → Skill).
+
+### How a task() delegation call actually works
+
+When Sisyphus calls `task(category="deep", load_skills=["execute"], ...)`:
+
+1. OpenCode receives the `task` tool call
+2. It looks up `"deep"` in `oh-my-opencode.jsonc` categories → finds `gpt-5.3-codex` on `openai`
+3. It spawns a new subagent session with that model
+4. It loads the skills listed in `load_skills` — reads `execute/SKILL.md` and prepends it to the subagent's context
+5. The subagent runs with the prompt, model, and skills injected
+6. Results are returned to Sisyphus
+
+The subagent is ephemeral — it exists only for that task. Skills are the knowledge it carries in. The category determines which model it runs on. This is the whole delegation system in one call.
+
+### The full wiring diagram
+
+```text
+User runs: opencode run "/planning user-auth"
+                |
+                v
+OpenCode CLI starts session
+  - Reads AGENTS.md → injects as system prompt (Sisyphus identity + rules)
+  - Loads .opencode/commands/ → discovers all slash commands
+  - Loads .opencode/hooks/ → registers all lifecycle hooks
+  - Reads oh-my-opencode.jsonc → loads agent + category model overrides
+                |
+                v
+chat.message hook fires (command-model-router)
+  - Detects "/planning" in message
+  - Reads .opencode/commands/planning.md frontmatter
+  - Finds model: "anthropic/claude-opus-4-6"
+  - Overrides session model to claude-opus-4-6
+                |
+                v
+/planning command runs as claude-opus-4-6
+  - Follows the 7-phase workflow in planning.md
+  - During Phase 2 research, calls: task(subagent_type="explore", ...)
+      - OpenCode spawns subagent with glm-5:cloud (from oh-my-opencode.jsonc)
+      - explore agent searches codebase, returns findings
+  - During Phase 3, calls: task(subagent_type="metis", ...)
+      - OpenCode spawns subagent with claude-sonnet-4-6
+      - metis reviews plan for gaps
+  - Writes plan.md + task-N.md to .agents/features/user-auth/
+  - Writes next-command.md handoff
+                |
+                v
+pipeline-hook fires on next session start
+  - Reads next-command.md
+  - Emits system reminder: "Feature: user-auth | Status: awaiting-execution | Next: /execute"
+```
+
+This is the complete loop. OpenCode is the runtime. AGENTS.md is the brain. Commands are the workflow specs. Hooks enforce discipline automatically. `oh-my-opencode.jsonc` routes each piece of work to the right model. The `.agents/` directory carries state between sessions.
+
+---
+
 ## Running commands
 
 Interactive mode is recommended for conversational commands like `/planning`, `/mvp`, and `/prd`.
