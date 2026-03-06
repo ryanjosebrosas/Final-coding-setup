@@ -130,17 +130,16 @@ const TASK_ROUTES: Record<string, ModelRoute | CascadeRoute> = {
   "docstring-generation": { provider: "bailian-coding-plan-test", model: "minimax-m2.5", label: "MINIMAX-M2.5" },
   "changelog-generation": { provider: "bailian-coding-plan-test", model: "minimax-m2.5", label: "MINIMAX-M2.5" },
 
-  // ── T0: Planning (Cascade: CODEX → FREE) ──
+  // ── T0: Planning (Cascade: OPUS → CODEX → FREE) ──
   // NOTE: ollama models (kimi-k2-thinking, cogito-2.1) removed — they output
   // raw tool call tokens in agent mode instead of making actual tool calls.
-  // Codex-first per user policy; qwen3-max and qwen3.5-plus confirmed working.
-  // Claude removed entirely per user request to avoid Anthropic subscription ban.
+  // Opus-first per user preference; Codex and qwen3 as fallbacks.
   "planning": {
     type: "cascade",
     models: [
+      { provider: "anthropic", model: "claude-opus-4-5-20250514", label: "CLAUDE-OPUS-4.5" },
       { provider: "openai", model: "gpt-5.3-codex", label: "GPT-5.3-CODEX" },
       { provider: "bailian-coding-plan-test", model: "qwen3-max-2026-01-23", label: "QWEN3-MAX" },
-      { provider: "bailian-coding-plan-test", model: "qwen3.5-plus", label: "QWEN3.5-PLUS" },
     ],
   },
 

@@ -635,6 +635,24 @@ sequenceDiagram
 | Archon MCP (optional) | Persistent task tracking, RAG knowledge base |
 | Model API keys | Configured in OpenCode setup |
 
+### Quick Install
+
+```bash
+# Install OpenCode CLI globally
+npm install -g @anthropics/opencode
+
+# Or via the official installer
+curl -fsSL https://opencode.ai/install.sh | bash
+
+# Verify installation
+opencode --version
+
+# Upgrade to latest
+opencode upgrade
+```
+
+**OpenCode Repository**: [https://github.com/anthropics/opencode](https://github.com/anthropics/opencode)
+
 ---
 
 ## License
