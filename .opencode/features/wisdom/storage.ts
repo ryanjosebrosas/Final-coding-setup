@@ -245,25 +245,26 @@ function parseWisdomFile(content: string, feature: string): WisdomFile {
   }
   
   // Parse conventions
-  const conventionsMatch = content.match(/## Conventions\n([\s\S]*?)(?=##|$)/)
+  // Use negative lookahead to distinguish ## sections from ### subsections
+  const conventionsMatch = content.match(/## Conventions\n([\s\S]+?)(?=\n## (?!#)|$)/)
   if (conventionsMatch) {
     wisdom.conventions = parseItems(conventionsMatch[1], 'Convention')
   }
   
   // Parse successes
-  const successesMatch = content.match(/## Successes\n([\s\S]*?)(?=##|$)/)
+  const successesMatch = content.match(/## Successes\n([\s\S]+?)(?=\n## (?!#)|$)/)
   if (successesMatch) {
     wisdom.successes = parseItems(successesMatch[1], 'Success')
   }
   
   // Parse failures
-  const failuresMatch = content.match(/## Failures\n([\s\S]*?)(?=##|$)/)
+  const failuresMatch = content.match(/## Failures\n([\s\S]+?)(?=\n## (?!#)|$)/)
   if (failuresMatch) {
     wisdom.failures = parseItems(failuresMatch[1], 'Failure')
   }
   
   // Parse gotchas
-  const gotchasMatch = content.match(/## Gotchas\n([\s\S]*?)(?=##|$)/)
+  const gotchasMatch = content.match(/## Gotchas\n([\s\S]+?)(?=\n## (?!#)|$)/)
   if (gotchasMatch) {
     wisdom.gotchas = parseItems(gotchasMatch[1], 'Gotcha')
   }
@@ -307,6 +308,33 @@ function parseItems(text: string, category: 'Convention' | 'Success' | 'Failure'
         currentItem.solution = line.split(':').slice(1).join(':').trim()
       } else if (line.startsWith('- **Problem**:')) {
         currentItem.problem = line.split(':').slice(1).join(':').trim()
+      // Gotchas: Issue maps to problem
+      } else if (line.startsWith('- **Issue**:')) {
+        currentItem.problem = line.split(':').slice(1).join(':').trim()
+      // Gotchas: Fix maps to solution
+      } else if (line.startsWith('- **Fix**:')) {
+        currentItem.solution = line.split(':').slice(1).join(':').trim()
+      // Failures: Resolution maps to solution
+      } else if (line.startsWith('- **Resolution**:')) {
+        currentItem.solution = line.split(':').slice(1).join(':').trim()
+      // Successes: Context
+      } else if (line.startsWith('- **Context**:')) {
+        currentItem.context = line.split(':').slice(1).join(':').trim()
+      // Severity (for any category that has it)
+      } else if (line.startsWith('- **Severity**:')) {
+        const sev = line.split(':').slice(1).join(':').trim().toLowerCase()
+        if (sev === 'critical' || sev === 'major' || sev === 'minor') {
+          currentItem.severity = sev
+        }
+      // Confidence
+      } else if (line.startsWith('- **Confidence**:')) {
+        const conf = parseInt(line.split(':').slice(1).join(':').trim(), 10)
+        if (!isNaN(conf) && conf >= 0 && conf <= 100) {
+          currentItem.confidence = conf
+        }
+      // Timestamp
+      } else if (line.startsWith('- **Timestamp**:')) {
+        currentItem.timestamp = line.split(':').slice(1).join(':').trim()
       }
     }
   }
@@ -348,6 +376,8 @@ function serializeWisdomFile(wisdom: WisdomFile): string {
       lines.push(`- **Pattern**: ${item.pattern}`)
       lines.push(`- **Location**: ${item.location || 'general'}`)
       lines.push(`- **Solution**: ${item.solution}`)
+      lines.push(`- **Confidence**: ${item.confidence}`)
+      lines.push(`- **Timestamp**: ${item.timestamp}`)
       lines.push('')
     }
   }
@@ -361,6 +391,8 @@ function serializeWisdomFile(wisdom: WisdomFile): string {
       lines.push(`- **Approach**: ${item.pattern}`)
       lines.push(`- **Result**: ${item.solution}`)
       lines.push(`- **Context**: ${item.context || 'general'}`)
+      lines.push(`- **Confidence**: ${item.confidence}`)
+      lines.push(`- **Timestamp**: ${item.timestamp}`)
       lines.push('')
     }
   }
@@ -374,6 +406,8 @@ function serializeWisdomFile(wisdom: WisdomFile): string {
       lines.push(`- **Problem**: ${item.problem}`)
       lines.push(`- **Resolution**: ${item.solution}`)
       lines.push(`- **Severity**: ${item.severity}`)
+      lines.push(`- **Confidence**: ${item.confidence}`)
+      lines.push(`- **Timestamp**: ${item.timestamp}`)
       lines.push('')
     }
   }
@@ -387,6 +421,11 @@ function serializeWisdomFile(wisdom: WisdomFile): string {
       lines.push(`- **Issue**: ${item.problem}`)
       lines.push(`- **Fix**: ${item.solution}`)
       lines.push(`- **Location**: ${item.location || 'general'}`)
+      if (item.severity && item.severity !== 'minor') {
+        lines.push(`- **Severity**: ${item.severity}`)
+      }
+      lines.push(`- **Confidence**: ${item.confidence}`)
+      lines.push(`- **Timestamp**: ${item.timestamp}`)
       lines.push('')
     }
   }

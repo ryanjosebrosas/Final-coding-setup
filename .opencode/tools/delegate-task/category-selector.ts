@@ -2,7 +2,7 @@
 // CATEGORY SELECTOR
 // ============================================================================
 
-import { CATEGORY_MODEL_ROUTES, validateCategorySelection, type SelectionGateResult } from "./constants"
+import { CATEGORY_MODEL_ROUTES, CATEGORY_PROMPT_APPENDS, validateCategorySelection, type SelectionGateResult } from "./constants"
 
 /**
  * Category routing result from resolution.
@@ -130,4 +130,12 @@ export function getCategoryMetadata(category: string): {
   label: string
 } | null {
   return CATEGORY_MODEL_ROUTES[category] || null
+}
+
+/**
+ * Get the prompt append for a category.
+ * Returns an empty string for unknown categories.
+ */
+export function getCategoryPromptAppend(category: string): string {
+  return CATEGORY_PROMPT_APPENDS[category as keyof typeof CATEGORY_PROMPT_APPENDS] || ""
 }
