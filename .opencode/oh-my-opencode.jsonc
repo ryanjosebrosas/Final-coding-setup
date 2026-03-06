@@ -65,13 +65,15 @@
       "provider": "openai"
     }
   },
+  // Cost-control levers: add agent/hook/command/skill names to disable them per-project
   "disabled_agents": [],
   "disabled_hooks": [],
   "disabled_commands": [],
   "disabled_skills": [],
+  // stdio MCP servers only (command/args/env). Remote HTTP MCPs (e.g. Archon) go in opencode.json
   "mcps": {},
   "experimental": {
-    "debug_logging": false
+    "debug_logging": true
   },
   "_migrations": [
     "model-version:anthropic/claude-opus-4-5->anthropic/claude-opus-4-6",

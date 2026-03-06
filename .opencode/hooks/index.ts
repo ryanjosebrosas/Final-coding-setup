@@ -2,13 +2,14 @@
  * OpenCode Hooks - Main Export
  * 
  * Exports all hook implementations organized by tier.
- * Hooks are grouped into 5 tiers based on execution priority:
+ * Hooks are grouped into 6 tiers based on execution priority:
  * 
  * 1. Continuation - Run first to enforce completion guarantees
  * 2. Session - Session lifecycle management
  * 3. Tool-Guard - Pre/post tool execution
  * 4. Transform - Message transformation
- * 5. Skill - Skill-specific hooks
+ * 5. Pipeline - Pipeline state reminders
+ * 6. Skill - Skill-specific hooks
  */
 
 // ============================================================================
@@ -78,7 +79,15 @@ export { createDirectoryReadmeInjectorHook } from "./directory-readme-injector"
 // - question-label-truncator
 
 // ============================================================================
-// SKILL TIER (Priority 5)
+// PIPELINE TIER (Priority 6)
+// ============================================================================
+
+// Pipeline Hook - Surface pending pipeline work on session start
+export { createPipelineHook, createPipelineHookFactory } from "./pipeline-hook"
+export type { PipelineHookOptions } from "./pipeline-hook"
+
+// ============================================================================
+// SKILL TIER (Priority 7)
 // ============================================================================
 
 // Category Skill Reminder - Remind about category + skills

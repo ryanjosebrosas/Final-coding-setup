@@ -286,7 +286,7 @@ Agents are registered in TypeScript with explicit model assignments and permissi
 | Librarian | `glm-5:cloud` | External documentation and OSS example search | Read-only |
 | Multimodal-Looker | `gemini-3-flash-preview` | PDF, image, and diagram analysis | Vision-only |
 
-Each agent is optimized for a specific job. Routing work to the right agent reduces token waste and improves output consistency. Explore and Librarian are cheap background agents — fire them in parallel for research. Oracle and Momus are expensive — use them for decisions, not grunt work.
+Each agent is optimized for a specific job. Routing work to the right agent reduces token waste and improves output consistency. Explore and Librarian are cheap background agents — fire them in parallel for research. Oracle and Momus are expensive consultants — use them for decisions, not implementation. Hephaestus is the heavy implementation worker — use it when oracle has diagnosed an issue and actual code changes need to be made, or when a task is too complex for category dispatch alone.
 
 ```mermaid
 graph TD
@@ -358,6 +358,14 @@ Reserved for upcoming transforms.
 ### Pipeline hook
 
 `pipeline-hook` fires at session start, reads `next-command.md`, and emits a system reminder with the current pipeline state and next suggested command.
+
+### Archon MCP integration
+
+When `opencode.json` is present at the project root with an Archon remote MCP entry,
+all commands that call `rag_search_knowledge_base`, `manage_task`, or other Archon tools
+connect automatically. No manual setup is required beyond having the file in place.
+The Archon endpoint is `http://159.195.45.47:8051/mcp`. All commands degrade gracefully
+if Archon is unavailable.
 
 ---
 

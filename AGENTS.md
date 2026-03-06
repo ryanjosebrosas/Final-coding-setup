@@ -398,7 +398,9 @@ If a task decomposes into 4 independent units, spawn 4 agents simultaneously —
 
 - **Architecture decisions** → `oracle` — Multi-system tradeoffs, unfamiliar patterns
 - **Self-review** → `oracle` — After completing significant implementation
-- **Hard debugging** → `oracle` — After 2+ failed fix attempts
+- **Hard debugging (diagnosis)** → `oracle` — After 2+ failed fix attempts, need root cause
+- **Complex implementation** → `hephaestus` — Multi-file logic, algorithms, hard autonomous work needing full permissions
+- **Hard debugging (fix)** → `hephaestus` — Oracle diagnosed the issue, now needs code actually fixed
 - **Librarian** → `librarian` — Unfamiliar packages / libraries, struggles at weird behaviour (to find existing implementation of opensource)
 - **Explore** → `explore` — Find existing codebase structure, patterns and styles
 - **Pre-planning analysis** → `metis` — Complex task requiring scope clarification, ambiguous requirements
