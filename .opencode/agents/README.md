@@ -1,47 +1,73 @@
-# Custom Subagents
+# Agent System
 
-Subagents for parallel research, code review, plan writing, and specialist tasks.
+TypeScript-based agent registry with specialized subagents for research, review, and implementation tasks.
+
+## Architecture
+
+All agents are defined in `registry.ts` with:
+- Model assignments and fallback chains
+- Permission levels (full, read-only, vision-only)
+- Temperature settings
+- Archon RAG integration flags
 
 ## Research Agents
 
-| Agent | Purpose |
-|-------|---------|
-| `research-codebase` | Parallel codebase exploration: finds files, extracts patterns, reports findings |
-| `research-external` | Documentation search, best practices, version compatibility checks |
-| `planning-research` | Knowledge base search and completed plan reference for planning context |
+| Agent | Purpose | Invocation |
+|-------|---------|------------|
+| `explore` | Internal codebase grep: finds files, extracts patterns, discovers implementations | `task(subagent_type="explore", ...)` |
+| `librarian` | External docs + Archon RAG: documentation search, best practices, OSS examples | `task(subagent_type="librarian", ...)` |
 
-## Code Review Agent
+Both agents have `archonEnabled: true` for RAG integration when Archon MCP is connected.
 
-| Agent | What It Covers |
-|-------|---------------|
-| `code-review` | Comprehensive review: type safety, security, architecture, performance, code quality |
+## Consultation Agents
 
-The code review agent covers all dimensions in a single pass. When dispatch is available, multiple instances can run in parallel with different focus areas.
+| Agent | Purpose | Invocation |
+|-------|---------|------------|
+| `oracle` | Architecture decisions, debugging help, multi-system tradeoffs | `task(subagent_type="oracle", ...)` |
+| `metis` | Pre-planning gap analysis, hidden assumption detection | `task(subagent_type="metis", ...)` |
+| `momus` | Plan completeness review, verification before execution | `task(subagent_type="momus", ...)` |
 
-## Plan Writing Agent
+> **Note**: Prometheus was merged into `/planning` command. Use `/planning` for requirement discovery and Socratic interview workflows.
 
-| Agent | What It Produces |
-|-------|-----------------|
-| `plan-writer` | Plan artifacts: `plan.md` (700-1000 lines) and `task-N.md` briefs (700-1000 lines each) |
+## Execution Agents
 
-The plan-writer agent is invoked by `/planning` Phase 5 to offload the heavyweight writing. It receives structured context from Phase 3 (Synthesize, Analyze, Decide, Decompose) and produces one artifact per invocation. It reads `.opencode/templates/TASK-BRIEF-TEMPLATE.md` at runtime for structural reference.
+| Agent | Purpose | Invocation |
+|-------|---------|------------|
+| `hephaestus` | Deep autonomous work on hard, logic-heavy tasks | `task(subagent_type="hephaestus", ...)` |
+| `sisyphus-junior` | Category-dispatched executor with constraints | `task(category="...", ...)` |
+| `atlas` | Todo management and wisdom accumulation | `task(subagent_type="atlas", ...)` |
 
 ## Usage
 
-Agents are invoked via the Task tool by the main agent, or can be @mentioned directly:
-```
-@research-codebase find all authentication-related code
-@research-external what are the best practices for JWT token refresh?
-@planning-research search for patterns related to authentication
-@code-review review the changes in src/auth/
-@plan-writer write task-3.md for feature auth-system
+Agents are invoked via `task()` with either `subagent_type` or `category`:
+
+```typescript
+// Direct agent invocation
+task(
+  subagent_type="explore",
+  run_in_background=true,
+  load_skills=[],
+  description="Find auth patterns",
+  prompt="Find authentication implementations in src/..."
+)
+
+// Category dispatch with skills
+task(
+  category="deep",
+  load_skills=["code-review"],
+  description="Review auth changes",
+  prompt="Review changes in src/auth/..."
+)
 ```
 
-## Creating New Agents
+## Agent Skills
 
-Create new markdown files in `.opencode/agents/` following the existing format:
-- Purpose statement
-- Capabilities list
-- Instructions for invocation
-- Output format
-- Rules/constraints
+Each agent has an optional `SKILL.md` in its subdirectory (e.g., `explore/SKILL.md`) that provides additional context when the agent is invoked.
+
+## Files
+
+- `registry.ts` — Agent definitions, permissions, fallback chains
+- `types.ts` — TypeScript type definitions
+- `permissions.ts` — Permission level constants
+- `resolve-agent.ts` — Agent resolution logic
+- `{agent-name}/SKILL.md` — Agent-specific skills and context

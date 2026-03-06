@@ -79,21 +79,18 @@ export const PERMISSIONS = {
 // ============================================================================
 
 export const FALLBACK_CHAINS = {
-  // Planning tier: Opus 4.5 primary with diverse fallbacks
-  sisyphus: ["kimi-k2.5", "glm-5", "big-pickle"],
-  hephaestus: ["claude-sonnet-4-5", "deepseek-v3.1:671b"],
-  oracle: ["gemini-3.1-pro", "claude-opus-4-5"],
-  momus: ["claude-opus-4-5", "gemini-3.1-pro"],
+  // Orchestrator (Opus only)
+  sisyphus: ["glm-5"],
 
-  // Medium tier: Multi-model fallbacks
-  prometheus: ["kimi-k2.5", "gpt-5.2", "gemini-3.1-pro"],
-  metis: ["gpt-5.2", "kimi-k2.5", "gemini-3.1-pro"],
-  atlas: ["kimi-k2.5", "gpt-5.2"],
-  librarian: ["deepseek-v3.2", "qwen3.5-plus", "glm-4.7"],
-
-  // Fast tier: Multi-model fallbacks
-  explore: ["qwen3-coder-next", "kimi-k2.5", "glm-4.7"],
-  multimodalLooker: ["gemini-3-flash", "minimax-m2.5", "big-pickle"],
+  // Execution/Analysis agents (glm-5 primary)
+  hephaestus: ["glm-5"],
+  oracle: ["glm-5"],
+  momus: ["glm-5"],
+  metis: ["glm-5"],
+  atlas: ["glm-5"],
+  librarian: ["glm-5"],
+  explore: ["glm-5"],
+  multimodalLooker: ["glm-5"],
 
   // Inherited from category dispatch
   sisyphusJunior: [],
@@ -135,7 +132,7 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     displayName: "Atlas — Todo List Conductor",
     description: "Manages todo list and tracks progress. Ensures tasks don't fall through cracks and accumulates wisdom across sessions.",
     category: "writing",
-    model: "claude-sonnet-4-5",
+    model: "glm-5",
     temperature: 0.1,
     mode: "primary",
     permissions: PERMISSIONS.full,
@@ -143,25 +140,12 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     deniedTools: ["task", "call_omo_agent"],
   },
 
-  prometheus: {
-    name: "prometheus",
-    displayName: "Prometheus — Strategic Interview Planner",
-    description: "Interview-mode planner that discovers requirements through Socratic questioning before planning begins.",
-    category: "unspecified-high",
-    model: "claude-opus-4-5",
-    temperature: 0.1,
-    mode: "subagent",
-    permissions: PERMISSIONS.readOnly,
-    fallbackChain: FALLBACK_CHAINS.prometheus,
-    deniedTools: ["write", "edit", "task"],
-  },
-
   oracle: {
     name: "oracle",
     displayName: "Oracle — Architecture Consultant",
     description: "Read-only consultant for architecture decisions, debugging help, and multi-system tradeoffs. Provides consultation, never implementation.",
     category: "ultrabrain",
-    model: "claude-sonnet-4-5",
+    model: "claude-opus-4-5",
     temperature: 0.1,
     mode: "subagent",
     permissions: PERMISSIONS.readOnly,
@@ -187,7 +171,7 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     displayName: "Momus — Plan Reviewer",
     description: "Ruthless plan reviewer that ensures plans are complete, verifiable, and actionable. Rejects vague plans.",
     category: "ultrabrain",
-    model: "claude-sonnet-4-5",
+    model: "claude-opus-4-5",
     temperature: 0.1,
     mode: "subagent",
     permissions: PERMISSIONS.readOnly,
@@ -200,7 +184,7 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     displayName: "Sisyphus-Junior — Category Executor",
     description: "Focused executor spawned by category dispatch. Works autonomously within MUST DO / MUST NOT DO constraints. Cannot delegate further.",
     category: "unspecified-high", // Inherited from dispatch
-    model: "claude-sonnet-4-5",
+    model: "gpt-5.3-codex",
     temperature: 0.1,
     mode: "all",
     permissions: PERMISSIONS.fullNoTask,
@@ -213,7 +197,7 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     displayName: "Librarian — External Documentation",
     description: "Searches external documentation and finds implementation examples from real repositories.",
     category: "writing",
-    model: "kimi-k2.5",
+    model: "glm-5",
     temperature: 0.1,
     mode: "subagent",
     permissions: PERMISSIONS.readOnly,
@@ -227,7 +211,7 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     displayName: "Explore — Internal Codebase Grep",
     description: "Fast contextual grep for the internal codebase. Find files, extract patterns, discover implementations.",
     category: "deep",
-    model: "deepseek-v3.2",
+    model: "glm-5",
     temperature: 0.1,
     mode: "subagent",
     permissions: PERMISSIONS.readOnly,
@@ -292,7 +276,6 @@ export const AGENT_NAMES: AgentName[] = [
   "sisyphus",
   "hephaestus",
   "atlas",
-  "prometheus",
   "oracle",
   "metis",
   "momus",

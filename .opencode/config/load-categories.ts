@@ -102,7 +102,7 @@ function getDefaultCategories(): CategoriesConfig {
         creativity: "low",
       },
       "writing": {
-        model: "kimi-k2.5",
+        model: "glm-5",
         provider: "ollama",
         temperature: 0.5,
         description: "Documentation, prose, technical writing",

@@ -30,81 +30,592 @@ Used standalone for each feature or capability.
 
 ---
 
-## Phase 1: Understand (Discovery Conversation)
+## Step 0: Intent Classification
 
-Start by understanding what the user wants to build. This is interactive — a conversation, not automation.
+Before discovery, classify the work intent. This determines interview strategy and required consultations.
 
-### Starting the conversation:
-- Ask: "What are we building? Give me the short version."
-- Listen, then ask 2-3 targeted follow-up questions:
-  - "What's the most important thing this needs to do?"
-  - "What existing code should this integrate with?"
-  - "Any constraints or preferences on how to build it?"
+### Intent Types
 
-If `$ARGUMENTS` is provided:
-- Summarize what you understand from the feature name/description
-- Ask: "This is about {purpose}. Does this match your thinking? Anything to add or change?"
+| Intent | Signal | Interview Strategy |
+|--------|--------|-------------------|
+| **Trivial** | Single file, <10 lines, obvious fix | Quick confirm, but still full planning process |
+| **Simple** | 1-2 files, clear scope, <30 min work | Focused questions on scope boundaries |
+| **Refactoring** | "refactor", "restructure", existing code | Safety focus: tests, rollback, behavior preservation |
+| **Build from Scratch** | New feature, greenfield, "create new" | Discovery focus: find patterns first, then requirements |
+| **Mid-sized** | Scoped feature, clear boundaries | Boundary focus: deliverables, exclusions, guardrails |
+| **Collaborative** | "let's figure out", "help me plan" | Dialogue focus: explore together, incremental clarity |
+| **Architecture** | System design, infrastructure | Strategic focus: **Oracle consultation REQUIRED** |
+| **Research** | Goal exists, path unclear | Investigation focus: parallel probes, exit criteria |
 
-Read these files for context (if they exist):
+### Classification Process
+
+1. Parse `$ARGUMENTS` and any prior context
+2. Match against signal patterns
+3. Select primary intent (may have secondary)
+4. Announce classification to user
+
+### Intent Announcement
+
+After classification, tell the user:
+
+```
+I'm classifying this as **{INTENT}** based on {observed signals}.
+
+Interview focus: {strategy description}
+{If Architecture: "Oracle consultation will be required in Phase 2."}
+{If Refactoring: "I'll focus on safety: tests, rollback strategy, behavior preservation."}
+
+Let's begin discovery.
+```
+
+### Intent Determines Downstream Behavior
+
+| Intent | Phase 1 Focus | Phase 2 Extras | Phase 3 Extras |
+|--------|---------------|----------------|----------------|
+| Trivial | Quick scope confirm | Standard | Standard |
+| Simple | Boundary questions | Standard | Standard |
+| Refactoring | Safety + rollback | Test coverage search | Risk analysis emphasis |
+| Build from Scratch | Pattern discovery | Extra pattern search | Standard |
+| Mid-sized | Exclusions + guardrails | Standard | Standard |
+| Collaborative | Open exploration | Standard | Standard |
+| Architecture | System boundaries | Oracle in Phase 2 | Oracle review required |
+| Research | Exit criteria | Parallel probes | Standard |
+
+---
+
+## Step 1: Draft Management
+
+Planning sessions persist across context windows via draft files.
+
+### Draft File Location
+
+```
+.agents/features/{feature}/planning-draft.md
+```
+
+### On Session Start
+
+**Check for existing draft:**
+
+```typescript
+// Check if draft exists
+const draftPath = `.agents/features/${feature}/planning-draft.md`
+```
+
+**If draft exists:**
+1. Read draft to restore context
+2. Summarize what was previously discussed
+3. Present to user:
+   ```
+   Continuing from our previous planning session for {feature}.
+   
+   **Previously discussed:**
+   - {topic 1}
+   - {topic 2}
+   - {key decision made}
+   
+   **Current status:** {where we left off}
+   
+   Ready to continue, or should we start fresh?
+   ```
+4. If user says "start fresh" → delete draft, begin from Step 0
+
+**If no draft exists:**
+1. Create feature directory: `.agents/features/{feature}/`
+2. Create initial draft with intent classification
+3. Inform user: "I'm recording our discussion in `.agents/features/{feature}/planning-draft.md`"
+
+### During Session
+
+**After every meaningful exchange**, update the draft:
+
+```markdown
+# Planning Draft: {feature}
+
+## Intent Classification
+- **Type**: {intent}
+- **Signals**: {why this classification}
+- **Classified at**: {timestamp}
+
+## Discovery Progress
+- [ ] Intent classified
+- [ ] Test strategy discussed
+- [ ] Scope boundaries defined
+- [ ] Clearance check passed
+
+## Key Discussions
+
+### {timestamp} — {topic}
+{summary of what was discussed}
+{decisions made}
+{open questions}
+
+### {timestamp} — {topic}
+...
+
+## Current Understanding
+{latest synthesis of what we're building}
+
+## Open Questions
+- {question 1}
+- {question 2}
+
+## Decisions Made
+- {decision 1}: {rationale}
+- {decision 2}: {rationale}
+```
+
+### Draft Cleanup
+
+After plan is written and user confirms:
+1. Draft file is deleted
+2. Plan artifacts remain in `.agents/features/{feature}/`
+
+---
+
+## Phase 1: Discovery (Intent-Specific Interview)
+
+> **Prerequisite**: Steps 0-1 complete (intent classified, draft initialized)
+
+Phase 1 adapts to the classified intent. The interview strategy, pre-research, and questions all change based on intent type.
+
+### 1a. Pre-Interview Research (Intent-Specific)
+
+**Launch research agents BEFORE asking questions.** The intent determines what to search for.
+
+#### Trivial / Simple
+No pre-research needed. Proceed directly to interview.
+
+#### Refactoring
+```typescript
+// Find all usages to understand impact scope
+task(
+  subagent_type="explore",
+  run_in_background=true,
+  load_skills=[],
+  description="Map refactoring impact",
+  prompt=`Find all usages of the code being refactored via references.
+  Map: call sites, return value consumers, type dependencies.
+  Identify: dynamic access patterns that won't show in static analysis.
+  Return: file paths, usage patterns, risk level per call site.`
+)
+
+// Find test coverage
+task(
+  subagent_type="explore",
+  run_in_background=true,
+  load_skills=[],
+  description="Find test coverage for refactoring",
+  prompt=`Find all tests exercising the code being refactored.
+  Map: what each test asserts, inputs used, public API vs internals.
+  Identify: coverage gaps.
+  Return: test file paths, coverage assessment.`
+)
+```
+
+#### Build from Scratch
+```typescript
+// Find similar implementations for patterns
+task(
+  subagent_type="explore",
+  run_in_background=true,
+  load_skills=[],
+  description="Find similar implementations",
+  prompt=`Find 2-3 similar implementations in the codebase.
+  Look for: directory structure, naming conventions, exports, shared utilities,
+  error handling patterns, registration steps.
+  Return: file paths with pattern descriptions.`
+)
+
+// Find organizational conventions
+task(
+  subagent_type="explore",
+  run_in_background=true,
+  load_skills=[],
+  description="Find organizational conventions",
+  prompt=`Find how similar features are organized.
+  Look for: nesting depth, index.ts barrels, types conventions,
+  test placement, registration patterns.
+  Return: canonical structure recommendation.`
+)
+
+// Find external docs if new technology
+task(
+  subagent_type="librarian",
+  run_in_background=true,
+  load_skills=[],
+  description="Find external documentation",
+  prompt=`Find official documentation for {technology}.
+  Look for: setup guides, project structure, API reference, pitfalls.
+  Skip basic tutorials — need production patterns.
+  Return: key documentation excerpts.`
+)
+```
+
+#### Architecture
+```typescript
+// Map existing architecture
+task(
+  subagent_type="explore",
+  run_in_background=true,
+  load_skills=[],
+  description="Map existing architecture",
+  prompt=`Map the current architecture.
+  Find: module boundaries, dependency direction, data flow, key abstractions, ADRs.
+  Identify: circular dependencies, coupling hotspots.
+  Return: architecture overview with dependency graph.`
+)
+
+// Find architectural patterns
+task(
+  subagent_type="librarian",
+  run_in_background=true,
+  load_skills=[],
+  description="Find architectural patterns",
+  prompt=`Find proven patterns for {architecture domain}.
+  Look for: scalability trade-offs, common failure modes, case studies.
+  Skip generic patterns — need domain-specific guidance.
+  Return: pattern recommendations with rationale.`
+)
+```
+
+#### Mid-sized / Collaborative / Research
+Standard explore agent for codebase patterns (covered in Phase 2).
+
+---
+
+### 1b. Intent-Specific Interview
+
+**Questions adapt to intent type.** Use research findings to inform questions.
+
+#### Trivial
+```
+Quick confirm: {summarize the obvious fix}
+Anything else to consider, or should I proceed?
+```
+
+#### Simple
+```
+1. Scope boundary: Should this include {adjacent concern} or stay focused on {core}?
+2. Integration: Any existing code this needs to work with?
+```
+
+#### Refactoring
+```
+1. Behavior preservation: What specific behavior MUST stay identical?
+2. Test verification: What command verifies current behavior works?
+3. Rollback strategy: If this goes wrong, how do we revert?
+4. Propagation: Should changes stay isolated or propagate to callers?
+```
+
+#### Build from Scratch
+```
+I found pattern {X} in {similar file}. Questions:
+1. Should new code follow this pattern or deviate? Why?
+2. What should explicitly NOT be built? (scope boundaries)
+3. MVP vs full vision: What's the minimum useful version?
+4. Any preferred libraries or approaches?
+```
+
+#### Mid-sized
+```
+1. Exact outputs: What files/endpoints/UI will this create?
+2. Explicit exclusions: What must NOT be included?
+3. Hard boundaries: What existing code must NOT be touched?
+4. Done criteria: How will we know this is complete?
+```
+
+#### Collaborative
+```
+Let's explore together. Starting point:
+- What's the core problem you're trying to solve?
+- What have you already tried or considered?
+- What feels unclear right now?
+```
+
+#### Architecture
+```
+1. Lifespan: How long should this design last? (months/years)
+2. Scale: What load/scale does this need to handle?
+3. Constraints: What's absolutely non-negotiable?
+4. Integration: What existing systems must this work with?
+
+Note: Oracle consultation is required in Phase 2 for Architecture intent.
+```
+
+#### Research
+```
+1. Goal: What specific question are we trying to answer?
+2. Exit criteria: How will we know we've found the answer?
+3. Constraints: Any paths we should NOT explore?
+4. Time box: How much time should we spend before deciding?
+```
+
+---
+
+### 1c. Test Infrastructure Assessment
+
+**Run for ALL intents.** Testing strategy affects plan output.
+
+#### Detect Test Infrastructure
+
+```typescript
+task(
+  subagent_type="explore",
+  run_in_background=true,
+  load_skills=[],
+  description="Detect test infrastructure",
+  prompt=`Assess test infrastructure in this project.
+  Find: test framework (jest/vitest/pytest/etc), test patterns, coverage config, CI integration.
+  Return: YES/NO per capability with examples.`
+)
+```
+
+#### Ask Test Strategy Question
+
+**If infrastructure EXISTS:**
+```
+I see test infrastructure ({framework}).
+
+Should this work include automated tests?
+- **TDD**: Tests written first, then implementation
+- **Tests-after**: Tests added after implementation  
+- **None**: No unit/integration tests for this work
+
+Regardless of choice, every task includes agent-executed QA scenarios.
+```
+
+**If infrastructure DOES NOT exist:**
+```
+No test infrastructure detected.
+
+Would you like to set up testing as part of this work?
+- **YES**: Include test infrastructure setup in the plan
+- **NO**: Proceed without unit tests
+
+Either way, agent-executed QA scenarios verify each deliverable.
+```
+
+#### Record Decision
+
+Update draft with test strategy:
+```markdown
+## Test Strategy
+- **Infrastructure**: EXISTS / NOT_FOUND
+- **Approach**: TDD / TESTS_AFTER / NONE
+- **Framework**: {detected or chosen}
+```
+
+---
+
+### 1d. Context File Reading
+
+Read these files for additional context (if they exist):
 - `mvp.md` — product vision
-- `PRD.md` (or similar) — product requirements
+- `PRD.md` (or similar) — product requirements  
 - `memory.md` — past decisions and gotchas
+- `.agents/wisdom/{feature}/` — accumulated wisdom
 
-### Discovery Tools
-Use these to explore the codebase during conversation:
-- **Glob/Grep/Read** — find and read relevant files
-- **Archon RAG** (if available) — search knowledge base for patterns and examples
-- **WebFetch** — look up official docs for libraries/APIs in scope
+Share relevant findings: "From memory.md, I see a past decision about {X}..."
 
-### Checkpoints
-After each major discovery, confirm:
+---
+
+### 1e. Checkpoints
+
+After each major discovery or decision:
 - "Here's what I'm seeing — does this match your intent?"
 - "I think we should approach it like X because Y. Sound right?"
-- Keep confirmations SHORT — one sentence, not paragraphs.
+
+Keep confirmations SHORT — one sentence, not paragraphs.
+
+Update draft after each checkpoint.
+
+---
+
+### 1f. Clearance Check
+
+**Gate before Phase 2.** Do not proceed until clearance passes.
+
+```
+## Phase 1 Clearance Check
+
+**Discussed:**
+- [x] Intent: {classified intent}
+- [x] Scope: {what's in/out}
+- [x] Test strategy: {TDD/Tests-after/None}
+- [x] Key constraints: {boundaries}
+
+**Auto-resolved (sensible defaults):**
+- {any assumptions made}
+
+**Ready for Phase 2 (Research)?**
+```
+
+If anything is unclear, ask before proceeding.
+If user confirms, move to Phase 2.
 
 ---
 
 ## Phase 2: Explore (Research)
 
-Once the direction is clear, delegate all retrieval to Haiku subagents. Run in parallel where possible.
+Once the direction is clear, delegate all retrieval to explore/librarian agents. Run in parallel (all with `run_in_background=true`).
 
-### 2a. Codebase research → delegate to `research-codebase` subagent (Haiku)
+### 2a. Codebase research → `explore` agent
 
-Use the Agent tool to invoke the `research-codebase` subagent with a prompt covering:
-- Feature being built and key integration points to find
-- Patterns to look for (naming conventions, error handling, testing)
-- Specific files or directories likely relevant
+Invoke the explore agent for internal codebase search. Run in background for parallel execution:
 
-The subagent returns: file:line references, patterns found, gotchas, integration points.
+```typescript
+task(
+  subagent_type="explore",
+  run_in_background=true,
+  load_skills=[],
+  description="Find codebase patterns for {feature}",
+  prompt=`
+    [CONTEXT]: Building {feature} — need to understand existing codebase patterns
+    [GOAL]: Find integration points and patterns to follow
+    [DOWNSTREAM]: Will use findings to inform implementation approach
+    [REQUEST]: Find:
+    - Key integration points in likely directories
+    - Naming conventions and patterns used
+    - Error handling approaches
+    - Test patterns if they exist
+    
+    Return: file:line references, patterns found, gotchas, integration points.
+  `
+)
+```
 
-### 2b. Knowledge base (if Archon connected) → delegate to `archon-retrieval` subagent (Haiku)
+The explore agent returns structured findings from the internal codebase.
 
-Use the Agent tool to invoke the `archon-retrieval` subagent with:
-- 2-5 keyword queries for the feature's key concepts
-- Ask for both docs and code examples
+### 2b. Knowledge base (if Archon connected) → `librarian` agent
 
-The subagent returns: matched documentation excerpts and code examples with source references.
+The librarian agent has `archonEnabled: true` and can search the Archon knowledge base:
 
-### 2c. External docs (if needed) → delegate to `research-external` subagent (Haiku)
+```typescript
+task(
+  subagent_type="librarian",
+  run_in_background=true,
+  load_skills=[],
+  description="Search knowledge base for {feature} patterns",
+  prompt=`
+    [CONTEXT]: Building {feature} — need relevant documentation and examples
+    [GOAL]: Find authoritative docs and code examples from knowledge base
+    [DOWNSTREAM]: Will use findings to inform implementation patterns
+    [REQUEST]: Search for:
+    - 2-5 keyword queries for key concepts: {keywords}
+    - Both documentation and code examples
+    - Focus on production patterns, skip tutorials
+    
+    Return: matched documentation excerpts and code examples with source references.
+  `
+)
+```
 
-Use the Agent tool to invoke the `research-external` subagent with:
-- Libraries/APIs involved and what specifically to look up
-- Any known version constraints
+The librarian agent automatically uses Archon RAG when connected.
 
-The subagent returns: relevant docs, best practices, pitfalls.
+### 2c. External docs (if needed) → `librarian` agent
 
-### 2d. Past plans → delegate to `planning-research` subagent (Haiku)
+For external documentation beyond the knowledge base:
 
-Use the Agent tool to invoke the `planning-research` subagent with:
-- Feature name and short description
-- Ask it to scan `.agents/features/*/plan.done.md` for similar features and reusable patterns
+```typescript
+task(
+  subagent_type="librarian",
+  run_in_background=true,
+  load_skills=[],
+  description="Find external docs for {library/API}",
+  prompt=`
+    [CONTEXT]: Building {feature} with {library/API}
+    [GOAL]: Find official documentation and best practices
+    [DOWNSTREAM]: Will use findings to implement correctly
+    [REQUEST]: Look up:
+    - Official documentation for {library/API}
+    - Version-specific constraints: {versions}
+    - Best practices and common pitfalls
+    
+    Return: relevant docs, best practices, pitfalls to avoid.
+  `
+)
+```
 
-The subagent returns: prior decisions, reusable patterns, lessons learned.
+The librarian agent searches GitHub, Context7, and web sources for documentation.
 
-### 2e. Synthesise findings:
+### 2d. Past plans → `explore` agent
 
-Take all subagent outputs and summarise:
+Search completed plans for patterns and lessons learned:
+
+```typescript
+task(
+  subagent_type="explore",
+  run_in_background=true,
+  load_skills=[],
+  description="Find similar past plans for {feature}",
+  prompt=`
+    [CONTEXT]: Planning {feature} — want to learn from past work
+    [GOAL]: Find similar completed plans and extract reusable patterns
+    [DOWNSTREAM]: Will use findings to avoid repeating mistakes
+    [REQUEST]: Scan:
+    - .agents/features/*/plan.done.md for similar features
+    - Look for: prior architectural decisions, reusable patterns, lessons learned
+    - Match on: {keywords related to feature}
+    
+    Return: prior decisions, reusable patterns, gotchas to avoid.
+  `
+)
+```
+
+The explore agent searches the internal codebase including completed plan artifacts.
+
+### 2e. Oracle Consultation (Architecture Intent ONLY)
+
+**REQUIRED when intent = Architecture.** Skip for other intents.
+
+Oracle provides strategic consultation on architecture decisions. This is read-only — Oracle advises, does not implement.
+
+```typescript
+task(
+  subagent_type="oracle",
+  run_in_background=false,  // Wait for Oracle's response
+  load_skills=[],
+  description="Architecture consultation for {feature}",
+  prompt=`
+    Architecture consultation request:
+    
+    **Feature**: {feature name}
+    **Intent**: Architecture / System Design
+    
+    **Context from Phase 1 Interview**:
+    - Lifespan requirement: {years}
+    - Scale requirement: {load expectations}
+    - Non-negotiable constraints: {list}
+    - Systems to integrate: {list}
+    
+    **Research Findings**:
+    - Current architecture: {from explore agent}
+    - External patterns: {from librarian agent}
+    
+    **Questions for Oracle**:
+    1. Given these constraints, what architectural approach do you recommend?
+    2. What are the key tradeoffs we should consider?
+    3. What failure modes should we design against?
+    4. What would you advise against doing?
+    
+    Provide strategic guidance. Be specific about tradeoffs.
+  `
+)
+```
+
+**Oracle Response Handling:**
+- Incorporate Oracle's recommendations into Phase 3 Analysis
+- Note Oracle's warnings in risk assessment
+- Reference Oracle's guidance in approach decision
+
+---
+
+### 2f. Synthesize findings
+
+Collect results from all background agents (`background_output(task_id="...")`) and summarize:
 - "Research found these patterns..." / "Past plan for {X} used this approach..."
+- **If Architecture intent**: "Oracle recommends {approach} because {rationale}. Key warnings: {list}."
 - Share key file:line references, patterns, and gotchas before moving to Phase 3
 
 ---
@@ -127,14 +638,14 @@ What we're building:
 
 What we learned from research:
   Codebase findings:
-    - {key pattern from research-codebase agent}
+    - {key pattern from explore agent}
     - {integration point discovered}
     - {gotcha or inconsistency found}
   External findings:
-    - {relevant docs/best practice from research-external agent}
+    - {relevant docs/best practice from librarian agent}
     - {pitfall or compatibility note}
   Prior plan findings:
-    - {pattern from planning-research agent — what worked in similar features}
+    - {pattern from explore agent — what worked in similar features}
     - {lesson or reusable structure}
 
 What the user cares about most:
@@ -250,22 +761,34 @@ Split rationale:
   {Why N tasks, not N-1 or N+1. What principle drives the split —
    "one task per target file" is the default heuristic. If deviating, explain why.}
 
+Parallelization Plan:
+  Wave 1: Tasks {list} — no dependencies, can start immediately
+  Wave 2: Tasks {list} — depends on Wave 1 completing
+  Wave 3: Tasks {list} — depends on Wave 2 completing
+  Parallel within waves: {which tasks can run simultaneously}
+
 Task 1: {name}
   Target file: {path}
   Why separate: {what boundary this follows — "this is the foundation that other tasks depend on"}
   Depends on: nothing (first task)
+  Blocks: Tasks {N, M}
+  Wave: 1
   Scope: {1-2 sentences — what this task creates/modifies}
 
 Task 2: {name}
   Target file: {path}
   Why separate: {boundary reasoning — "different file, different concern"}
   Depends on: Task 1 ({specifically what it needs — "the interface defined in Task 1"})
+  Blocks: Tasks {N}
+  Wave: 2
   Scope: {1-2 sentences}
 
 Task 3: {name}
   Target file: {path}
   Why separate: {boundary reasoning}
   Depends on: Task 1 and/or Task 2 ({specific dependency})
+  Blocks: Tasks {N}
+  Wave: 2
   Scope: {1-2 sentences}
 
 ... (continue for all tasks)
@@ -286,6 +809,69 @@ Confidence: {X}/10
 
 **Checkpoint**: "Here's the task breakdown — {N} tasks in this order. The key dependency is {X}. Does this look right?"
 
+### 3e. Metis Consultation (Gap Analysis)
+
+**Before presenting the preview**, summon Metis to catch what you might have missed.
+
+Metis is the pre-planning gap analyzer. It identifies hidden assumptions, ambiguities, and potential AI failure points.
+
+```typescript
+task(
+  subagent_type="metis",
+  run_in_background=false,  // Wait for response
+  load_skills=[],
+  description="Gap analysis for {feature} plan",
+  prompt=`
+    Review this planning session before I present the preview:
+    
+    **User's Goal**: 
+    {summarize what user wants from Phase 1}
+    
+    **What We Discussed**:
+    {key points from Phase 1 interview}
+    
+    **My Understanding** (from Synthesis):
+    {SYNTHESIS block content}
+    
+    **Research Findings**:
+    {key discoveries from Phase 2}
+    
+    **Proposed Approach** (from Decide):
+    {APPROACH DECISION block content}
+    
+    **Task Breakdown** (from Decompose):
+    {TASK DECOMPOSITION block content}
+    
+    Please identify:
+    1. **Questions I should have asked but didn't** — gaps in discovery
+    2. **Guardrails that need to be explicitly set** — scope boundaries missing
+    3. **Potential scope creep areas** — where AI might over-build
+    4. **Assumptions I'm making that need validation** — implicit assumptions
+    5. **Missing acceptance criteria** — how will we know tasks are done
+    6. **Edge cases not addressed** — failure modes not covered
+    
+    Be specific. Reference the task breakdown by task number.
+  `
+)
+```
+
+**Metis Response Handling:**
+
+1. **CRITICAL gaps** (blocks preview):
+   - Return to user: "Metis identified a critical gap: {gap}. Let me ask: {question}"
+   - Update draft with answer
+   - Re-run Metis if needed
+
+2. **MINOR gaps** (fix silently):
+   - Incorporate into Phase 4 preview
+   - Note in "Guardrails Applied" section
+
+3. **ASSUMPTIONS flagged**:
+   - Add to preview as "Assumptions (validate with user)"
+   - Ask user to confirm before proceeding
+
+---
+
 ### Phase 3 Output Summary
 
 By the end of Phase 3, the following are locked in and available for Phase 4:
@@ -293,8 +879,9 @@ By the end of Phase 3, the following are locked in and available for Phase 4:
 - **Analysis** — dependency graph, risks with mitigations, failure modes, interface boundaries
 - **Approach** — chosen approach with reasoning, rejected alternatives, accepted tradeoff
 - **Decomposition** — task list with per-task justification, order rationale, confidence score
+- **Metis Review** — gaps identified and addressed, guardrails applied
 
-Phase 4's preview draws directly from these: `Approach` → preview's "Approach" field, `Risks` from analysis → preview's "Risks" field, `Decomposition` → preview's "Estimated tasks" and "Mode" fields.
+Phase 4's preview draws directly from these: `Approach` → preview's "Approach" field, `Risks` from analysis → preview's "Risks" field, `Decomposition` → preview's "Estimated tasks" and "Mode" fields, `Metis Review` → preview's "Guardrails" field.
 
 ---
 
@@ -311,9 +898,14 @@ Approach:  {the locked-in approach}
 Files:     {create: X, modify: Y}
 Key decision: {the main architectural choice and why}
 Risks:     {top 1-2 risks}
-Tests:     {testing approach}
+Tests:     {testing approach from Phase 1}
 Estimated tasks: {N tasks}
 Mode:      {Task Briefs (N briefs, default) | Master + Sub-Plans (N phases, escape hatch)}
+
+Metis Review:
+  Gaps addressed: {list of gaps Metis found that were incorporated}
+  Assumptions: {list — ask user to validate}
+  Guardrails: {explicit scope boundaries}
 ```
 
 ```
@@ -402,10 +994,71 @@ Using the task brief structure below as the structural reference, write one task
 - Patterns to Follow (complete code snippets from the codebase — NOT optional, NOT summaries)
 - Step-by-Step Tasks (each step: IMPLEMENT with exact Current/Replace-with blocks, PATTERN, GOTCHA, VALIDATE)
 - Testing Strategy (unit, integration, edge cases)
+- **QA Scenarios** (agent-executed verification steps)
 - Validation Commands (L1–L5, each level filled or explicitly "N/A" with reason)
 - Acceptance Criteria (Implementation + Runtime checkboxes)
+- **Parallelization** (Wave N, blocks, blocked-by)
 - Handoff Notes (what task N+1 needs to know; omit for last task)
 - Completion Checklist
+
+#### QA Scenarios
+
+Every task brief includes agent-executed QA scenarios. These are NOT unit tests — they are verification steps the executing agent performs.
+
+**Format:**
+```markdown
+## QA Scenarios
+
+### Scenario 1: {Happy Path Name}
+**Tool**: Bash / Playwright / Read
+**Steps**:
+1. {exact command or action}
+2. {exact command or action}
+**Expected**: {concrete, verifiable result}
+**Evidence**: `.agents/features/{feature}/evidence/task-{N}-{slug}.{ext}`
+
+### Scenario 2: {Error Path Name}
+**Tool**: Bash
+**Steps**:
+1. {trigger error condition}
+**Expected**: {specific error message or behavior}
+**Evidence**: `.agents/features/{feature}/evidence/task-{N}-{slug}.{ext}`
+```
+
+**Rules:**
+- Every task has at least 2 QA scenarios (happy path + error path)
+- Scenarios use specific tools (Bash, Playwright, Read), not vague "verify"
+- Expected results are concrete, not "it works"
+- Evidence is saved to `.agents/features/{feature}/evidence/`
+
+#### Parallelization
+
+Every task brief specifies parallelization constraints.
+
+**Format:**
+```markdown
+## Parallelization
+
+- **Wave**: {N} — Tasks in the same wave can run in parallel
+- **Can Parallel**: YES / NO
+- **Blocks**: {task numbers this task blocks, e.g., "Tasks 4, 5"}
+- **Blocked By**: {task numbers this task depends on, e.g., "Task 1"}
+```
+
+**Rules:**
+- Wave 1 tasks have no dependencies (can start immediately)
+- Higher wave numbers depend on lower waves completing
+- "Blocks" lists downstream tasks that wait for this one
+- "Blocked By" lists upstream tasks this one waits for
+- Tasks in the same wave with `Can Parallel: YES` can run simultaneously
+
+**Example:**
+```
+Task 1: Create base types     — Wave 1, Blocks: 2, 3, 4
+Task 2: Implement service     — Wave 2, Blocked By: 1, Blocks: 4
+Task 3: Implement handler     — Wave 2, Blocked By: 1, Blocks: 4
+Task 4: Integration tests     — Wave 3, Blocked By: 2, 3
+```
 
 **Rejection criteria** — a task brief is REJECTED if it:
 - Is under 700 lines
@@ -462,12 +1115,28 @@ Create the feature directory if it doesn't exist: `.agents/features/{feature}/`
 ...
 ```
 
-### Archon Task Sync (if connected) → delegate to `archon-retrieval` subagent (Haiku)
+### Archon Task Sync (if connected) → `librarian` agent
 
-After writing the plan, invoke the `archon-retrieval` subagent to sync tasks:
-1. Find or create project for this feature
-2. Create one Archon task per task brief
-3. Return task IDs to store in plan metadata for `/execute` to update
+After writing the plan, invoke the librarian agent to sync tasks with Archon:
+
+```typescript
+task(
+  subagent_type="librarian",
+  run_in_background=false,  // Wait for result
+  load_skills=[],
+  description="Sync tasks to Archon for {feature}",
+  prompt=`
+    [CONTEXT]: Plan written for {feature} with {N} task briefs
+    [GOAL]: Create Archon tasks for tracking
+    [REQUEST]:
+    1. Find or create Archon project for this feature
+    2. Create one Archon task per task brief
+    3. Return task IDs to store in plan metadata
+  `
+)
+```
+
+The librarian agent uses Archon MCP tools when connected.
 
 ### Pipeline Handoff Write (required)
 
@@ -538,9 +1207,211 @@ Next (hand to Codex):
 
 ---
 
-## The 7-Field Task Format
+## Phase 6: Self-Review
 
-Every task in a plan MUST include at minimum ACTION, TARGET, IMPLEMENT, VALIDATE. Heavy plans include all 7 fields:
+Before presenting to user, perform self-review with gap classification.
+
+### Gap Classification
+
+| Gap Type | Definition | Action |
+|----------|------------|--------|
+| **CRITICAL** | Blocks execution, user input required | Ask user immediately, do not proceed |
+| **MINOR** | Small issue, sensible default exists | Fix silently, note in summary |
+| **AMBIGUOUS** | Multiple valid interpretations | Apply default, disclose in summary |
+
+### Self-Review Checklist
+
+Run through this checklist after writing plan artifacts:
+
+```
+## Self-Review: {feature}
+
+### Completeness
+- [ ] All TODOs have acceptance criteria?
+- [ ] All file references exist in codebase?
+- [ ] No assumptions without evidence?
+- [ ] Guardrails from Metis incorporated?
+- [ ] Scope boundaries clearly defined?
+
+### QA Coverage
+- [ ] Every task has QA scenarios?
+- [ ] QA scenarios include happy path?
+- [ ] QA scenarios include error path?
+- [ ] Evidence collection paths defined?
+
+### Parallelization
+- [ ] Wave assignments are valid?
+- [ ] Dependencies correctly mapped?
+- [ ] No circular dependencies?
+
+### Gaps Found
+- CRITICAL: {list or "None"}
+- MINOR: {list or "None"} — {how resolved}
+- AMBIGUOUS: {list or "None"} — {default applied}
+```
+
+### Gap Resolution
+
+**CRITICAL gaps:**
+1. Stop self-review
+2. Ask user the blocking question
+3. Update draft with answer
+4. Re-run self-review
+
+**MINOR gaps:**
+1. Fix in place (edit plan.md or task briefs)
+2. Note in summary: "Auto-resolved: {gap} → {fix}"
+
+**AMBIGUOUS gaps:**
+1. Apply sensible default
+2. Note in summary: "Assumption: {assumption}. Override if needed."
+
+---
+
+## Phase 7: Present Summary + Optional Momus Review
+
+After self-review passes (no CRITICAL gaps), present summary and offer high-accuracy review.
+
+### Summary Presentation
+
+```
+## Plan Complete: {feature}
+
+**Plan artifacts:**
+- `.agents/features/{feature}/plan.md` (overview + task index)
+- `.agents/features/{feature}/task-1.md` through `task-{N}.md`
+
+**Key Decisions:**
+- {decision 1}: {rationale}
+- {decision 2}: {rationale}
+
+**Scope:**
+- IN: {what's included}
+- OUT: {what's explicitly excluded}
+
+**Guardrails Applied:**
+- {guardrail from Metis}
+- {guardrail from Metis}
+
+**Auto-Resolved (minor gaps):**
+- {gap}: {how resolved}
+
+**Assumptions (validate if needed):**
+- {assumption 1}
+- {assumption 2}
+
+**Test Strategy:** {TDD / Tests-after / None}
+**Confidence:** {X}/10
+**Estimated effort:** {N} tasks across {M} waves
+
+---
+
+**Ready to proceed?**
+1. **Execute** → `/execute .agents/features/{feature}/plan.md`
+2. **High Accuracy Review** → Have Momus rigorously verify every detail first
+```
+
+### Momus Review (If Requested)
+
+If user chooses "High Accuracy Review":
+
+```typescript
+task(
+  subagent_type="momus",
+  run_in_background=false,
+  load_skills=[],
+  description="Plan review for {feature}",
+  prompt=`
+    Rigorously review this plan for clarity, verifiability, and completeness.
+    
+    **Plan location:** .agents/features/{feature}/plan.md
+    **Task briefs:** .agents/features/{feature}/task-{1..N}.md
+    
+    **Review Criteria:**
+    
+    1. **Acceptance Criteria Quality**
+       - Every TODO has clear, testable acceptance criteria?
+       - Criteria are objective (not "verify it works")?
+       - Success/failure is unambiguous?
+    
+    2. **QA Scenario Quality**
+       - Every task has QA scenarios?
+       - Scenarios use specific tools (Bash/Playwright/Read)?
+       - Expected results are concrete?
+       - Evidence paths are defined?
+    
+    3. **Dependency Integrity**
+       - All dependencies explicitly listed?
+       - No implicit assumptions between tasks?
+       - Wave assignments are valid?
+       - No circular dependencies?
+    
+    4. **Scope Boundedness**
+       - Scope is clearly defined?
+       - Exclusions are explicit?
+       - No open-ended tasks?
+       - Guardrails prevent scope creep?
+    
+    5. **Execution Readiness**
+       - Each task is self-contained?
+       - Context references are complete?
+       - Patterns to follow are specific?
+       - Validation commands are provided?
+    
+    **Verdict:** APPROVE or REJECT
+    
+    If REJECT, list specific issues to fix:
+    - Task {N}: {issue} → {required fix}
+  `
+)
+```
+
+### Momus Iteration
+
+If Momus rejects:
+1. Fix the specific issues listed
+2. Re-run Momus review
+3. Repeat until APPROVE
+
+If Momus approves:
+```
+Momus review: **APPROVED**
+
+Plan is verified for clarity, verifiability, and completeness.
+
+Ready to execute: `/execute .agents/features/{feature}/plan.md`
+```
+
+---
+
+## Cleanup
+
+After user confirms ready to execute:
+
+1. **Delete draft file:**
+   ```
+   rm .agents/features/{feature}/planning-draft.md
+   ```
+
+2. **Keep plan artifacts:**
+   - `plan.md` — overview and task index
+   - `task-{N}.md` — individual task briefs
+   - (or `plan-master.md` + `plan-phase-{N}.md` for complex features)
+
+3. **Write pipeline handoff** (already defined in Phase 5)
+
+4. **Present next step:**
+   ```
+   Planning complete. Ready to execute.
+   
+   Next: /execute .agents/features/{feature}/plan.md
+   ```
+
+---
+
+## The Task Format
+
+Every task in a plan MUST include at minimum ACTION, TARGET, IMPLEMENT, VALIDATE. Full plans include all fields:
 
 | Field | Purpose | Example |
 |-------|---------|---------|
@@ -551,8 +1422,10 @@ Every task in a plan MUST include at minimum ACTION, TARGET, IMPLEMENT, VALIDATE
 | **IMPORTS** | Exact imports | Copy-paste ready import statements |
 | **GOTCHA** | Known pitfalls | "Must use async/await — the database client is async-only" |
 | **VALIDATE** | Verification command | `npm test -- --grep "auth"` |
+| **QA** | Agent verification | "Run login flow, verify token returned" |
+| **WAVE** | Parallelization | "Wave 2, Blocked By: Task 1" |
 
-Light and standard plans use a reduced format (ACTION, TARGET, IMPLEMENT, VALIDATE minimum).
+Light plans use a reduced format (ACTION, TARGET, IMPLEMENT, VALIDATE minimum). Full plans include QA and WAVE for every task.
 
 ---
 

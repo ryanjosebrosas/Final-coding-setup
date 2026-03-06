@@ -4,58 +4,40 @@
 
 | Field | Value |
 |-------|-------|
-| **Last Command** | /code-loop |
-| **Feature** | command-model-format-fix |
-| **Next Command** | /commit |
-| **Task Progress** | 3/3 complete |
-| **Timestamp** | 2026-03-06T16:45:00+08:00 |
+| **Last Command** | `/code-loop` |
+| **Feature** | prometheus-planning-merge |
 | **Status** | ready-to-commit |
+| **Next Command** | `/commit` |
+| **Task Progress** | 6/6 complete |
+| **Review Status** | ✅ CLEAN (0 Critical, 0 Major, 0 Minor) |
+| **Timestamp** | 2026-03-06T12:45:00Z |
 
-## Feature Summary
+## Code Review Summary
 
-Fix OpenCode slash command model routing by updating frontmatter `model:` fields to use `provider/model` format. Also delete redundant `.claude/` and `.codex/` directories.
+Review passed with no findings. All verifications complete:
+- ✅ All 8 Prometheus features migrated
+- ✅ 16 agent invocations use correct `task(subagent_type=...)` syntax
+- ✅ No legacy patterns
+- ✅ Draft uses `planning-draft.md` (not prometheus-draft.md)
+- ✅ Code blocks balanced (51 pairs)
+- ✅ Cross-references accurate
 
-## Task Briefs
+## Result
 
-| Task | Description | Status |
-|------|-------------|--------|
-| task-1.md | Update 14 command files with provider prefix | ✅ done |
-| task-2.md | Delete `.claude/` and `.codex/` directories | ✅ done |
-| task-3.md | Verify model switching works | ✅ done |
+- `.opencode/commands/planning.md` — 1448 lines (up from 663)
+- Merged Prometheus interview methodology into unified /planning command
+- All specialized agents integrated: explore, librarian, oracle, metis, momus
 
 ## Artifacts
 
-- Plan: `.agents/features/command-model-format-fix/plan.done.md` ✅
-- Task 1: `.agents/features/command-model-format-fix/task-1.done.md` ✅
-- Task 2: `.agents/features/command-model-format-fix/task-2.done.md` ✅
-- Task 3: `.agents/features/command-model-format-fix/task-3.done.md` ✅
-- Report: `.agents/features/command-model-format-fix/report.md`
+- Plan: `.agents/features/prometheus-planning-merge/plan.done.md`
+- Tasks: `task-1.done.md` through `task-6.done.md`
+- Review: `.agents/features/prometheus-planning-merge/review.done.md`
 
-## Completed Work
+## Prior Feature (also ready)
 
-### Task 1: Update Command Model Formats ✅
+- **agent-system-consolidation** — 5/5 tasks complete, also ready to commit
 
-All 14 command files updated with provider prefix:
-- Group 1 (ollama/glm-4.7:cloud): prime.md, commit.md
-- Group 2 (ollama/deepseek-v3.1:671b-cloud): code-loop.md, code-review.md, code-review-fix.md, final-review.md, pr.md, system-review.md
-- Group 3 (openai/gpt-5.3-codex): planning.md, council.md, decompose.md, mvp.md, pillars.md, prd.md
-- execute.md: correctly has no model field (intentional)
+## Next Session
 
-### Task 2: Delete Redundant Directories ✅
-
-- Updated CLAUDE.md: 6 `@.claude/sections/` → `@.opencode/sections/`
-- Updated AGENTS.md: All `.codex/` and `.claude/` references → `.opencode/`
-- Deleted `.claude/` directory
-- Deleted `.codex/` directory
-- Verified no broken references remain
-
-### Task 3: Verify Model Switching ✅
-
-- All 14 model fields have `provider/model` format
-- `execute.md` has no model field
-- Both `.claude/` and `.codex/` directories deleted
-- No `.claude/` or `.codex/` references remain in CLAUDE.md or AGENTS.md
-
-## Next Action
-
-Run `/code-loop command-model-format-fix` for automated code review before commit.
+Run `/prime` then `/commit` to finalize changes.

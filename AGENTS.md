@@ -32,17 +32,79 @@ Before classifying the task, identify what the user actually wants from you as a
 | Surface Form | True Intent | Your Routing |
 |---|---|---|
 | "explain X", "how does Y work" | Research/understanding | explore/librarian → synthesize → answer |
-| "implement X", "add Y", "create Z" | Implementation (explicit) | plan → delegate or execute |
+| "implement X", "add Y", "create Z" | Implementation (explicit) | **AUTO-INVOKE `/planning {feature}`** → then execute |
 | "look into X", "check Y", "investigate" | Investigation | explore → report findings |
 | "what do you think about X?" | Evaluation | evaluate → propose → **wait for confirmation** |
 | "I'm seeing error X" / "Y is broken" | Fix needed | diagnose → fix minimally |
-| "refactor", "improve", "clean up" | Open-ended change | assess codebase first → propose approach |
+| "refactor", "improve", "clean up" | Open-ended change | **AUTO-INVOKE `/planning {feature}`** → then execute |
 
 **Verbalize before proceeding:**
 
 > "I detect [research / implementation / investigation / evaluation / fix / open-ended] intent — [reason]. My approach: [explore → answer / plan → delegate / clarify first / etc.]."
 
 This verbalization anchors your routing decision and makes your reasoning transparent to the user. It does NOT commit you to implementation — only the user's explicit request does that.
+
+### Implementation Intent Handler
+
+**When implementation or open-ended intent is detected, AUTOMATICALLY invoke `/planning`.**
+
+This is NOT optional. The `/planning` command contains the full interview methodology (intent classification, discovery questions, test strategy, clearance check, Metis gap analysis, structured plan output).
+
+**Automatic invocation flow:**
+
+```
+User: "implement auth system" or "add user registration" or "refactor the API"
+          ↓
+Sisyphus detects: Implementation / Open-ended intent
+          ↓
+Sisyphus announces: "I detect implementation intent. Invoking /planning auth-system..."
+          ↓
+/planning runs with full interview workflow:
+  - Step 0: Intent Classification (8 types)
+  - Step 1: Draft Management
+  - Phase 1: Discovery (intent-specific interview, test assessment, clearance)
+  - Phase 2: Research (explore, librarian, Oracle for Architecture)
+  - Phase 3: Design (Synthesize, Analyze, Decide, Decompose, Metis)
+  - Phase 4: Preview (user approval gate)
+  - Phase 5: Write Plan (700-1000 lines + task briefs)
+  - Phase 6: Self-Review
+  - Phase 7: Present + Optional Momus Review
+          ↓
+User approves plan
+          ↓
+Sisyphus executes: /execute .agents/features/{feature}/plan.md
+```
+
+**How to invoke /planning:**
+
+Delegate to Sonnet (NOT Opus) to save tokens:
+```typescript
+task(
+  category="unspecified-high",
+  load_skills=["planning-methodology"],
+  description="Run /planning for {feature}",
+  prompt=`Run the /planning workflow for feature: {feature-name}
+  
+  Follow the full planning methodology:
+  - Step 0: Intent Classification
+  - Step 1: Draft Management  
+  - Phase 1-7: Full interview and plan generation
+  
+  Output: plan.md + task briefs in .agents/features/{feature}/`
+)
+```
+
+**Why delegate instead of running directly:**
+- Opus orchestrates, Sonnet plans — saves 80% token cost
+- `/planning` is a structured workflow that Sonnet handles well
+- Opus stays free for orchestration decisions
+
+**Exception — Skip /planning when:**
+- User explicitly says "just fix this one line" or "quick typo fix"
+- The change is truly trivial (single line, obvious fix, no design decisions)
+- A plan already exists at `.agents/features/{feature}/plan.md`
+
+For everything else: **INVOKE /planning AUTOMATICALLY.**
 
 ### Step 1: Classify Request Type
 
@@ -351,17 +413,16 @@ If a task decomposes into 4 independent units, spawn 4 agents simultaneously —
 
 | Agent | Display Name | Model | Temp | Mode | Permissions | Category | Purpose |
 |-------|--------------|-------|------|------|-------------|----------|---------|
-| `sisyphus` | Sisyphus — Main Orchestrator | claude-opus-4-6 | 0.1 | all | full | unspecified-high | Primary orchestrator: workflow management, delegation, session continuity |
+| `sisyphus` | Sisyphus — Main Orchestrator | claude-opus-4-5 | 0.1 | all | full | unspecified-high | Primary orchestrator: workflow management, delegation, session continuity |
 | `hephaestus` | Hephaestus — Deep Autonomous Worker | gpt-5.3-codex | 0.1 | all | full | ultrabrain | Autonomous problem-solver for genuinely difficult, logic-heavy tasks |
-| `atlas` | Atlas — Todo List Conductor | kimi-k2.5 | 0.1 | primary | full-no-task | writing | Todo management, progress tracking, wisdom accumulation |
-| `prometheus` | Prometheus — Strategic Interview Planner | claude-opus-4-6 | 0.1 | subagent | read-only | unspecified-high | Socratic questioning before planning, requirement discovery |
-| `oracle` | Oracle — Architecture Consultant | gpt-5.2 | 0.1 | subagent | read-only | ultrabrain | Read-only architecture consultation, debugging help, tradeoffs |
-| `metis` | Metis — Pre-Planning Gap Analyzer | claude-opus-4-6 | 0.3 | subagent | read-only | artistry | Identifies hidden ambiguities, AI failure points before planning |
-| `momus` | Momus — Plan Reviewer | gpt-5.2 | 0.1 | subagent | read-only | ultrabrain | Ruthless plan completeness verification, rejects vague plans |
-| `sisyphus-junior` | Sisyphus-Junior — Category Executor | claude-sonnet-4-6 | 0.1 | all | full-no-task | inherited | Category-dispatched executor with MUST DO/MUST NOT DO constraints |
-| `librarian` | Librarian — External Documentation | kimi-k2.5 | 0.1 | subagent | read-only | writing | External documentation search, implementation examples from OSS |
-| `explore` | Explore — Internal Codebase Grep | grok-code-fast-1 | 0.1 | subagent | read-only | deep | Fast internal codebase grep, pattern discovery, file location |
-| `multimodal-looker` | Multimodal-Looker — PDF/Image Analysis | gemini-3-flash | 0.1 | subagent | vision-only | unspecified-low | PDF/image analysis, diagram interpretation, visual content extraction |
+| `atlas` | Atlas — Todo List Conductor | glm-5 | 0.1 | primary | full-no-task | writing | Todo management, progress tracking, wisdom accumulation |
+| `oracle` | Oracle — Architecture Consultant | claude-opus-4-5 | 0.1 | subagent | read-only | ultrabrain | Read-only architecture consultation, debugging help, tradeoffs |
+| `metis` | Metis — Pre-Planning Gap Analyzer | claude-opus-4-5 | 0.3 | subagent | read-only | artistry | Identifies hidden ambiguities, AI failure points before planning |
+| `momus` | Momus — Plan Reviewer | claude-opus-4-5 | 0.1 | subagent | read-only | ultrabrain | Ruthless plan completeness verification, rejects vague plans |
+| `sisyphus-junior` | Sisyphus-Junior — Category Executor | gpt-5.3-codex | 0.1 | all | full-no-task | inherited | Category-dispatched executor with MUST DO/MUST NOT DO constraints |
+| `librarian` | Librarian — External Documentation | glm-5 | 0.1 | subagent | read-only | writing | External documentation search, implementation examples from OSS |
+| `explore` | Explore — Internal Codebase Grep | glm-5 | 0.1 | subagent | read-only | deep | Fast internal codebase grep, pattern discovery, file location |
+| `multimodal-looker` | Multimodal-Looker — PDF/Image Analysis | gemini-3-flash-preview | 0.1 | subagent | vision-only | unspecified-low | PDF/image analysis, diagram interpretation, visual content extraction |
 
 ### Permission Levels
 
@@ -382,18 +443,18 @@ If a task decomposes into 4 independent units, spawn 4 agents simultaneously —
 
 ### Fallback Chains
 
-| Agent | Primary Model | Fallback 1 | Fallback 2 | Fallback 3 |
-|-------|---------------|-------------|------------|------------|
-| sisyphus | claude-opus-4-6 | kimi-k2.5 | glm-5 | big-pickle |
-| hephaestus | gpt-5.3-codex | gpt-5.2 | — | — |
-| oracle | gpt-5.2 | gemini-3.1-pro | claude-opus-4-6 | — |
-| librarian | kimi-k2.5 | gemini-3-flash | gpt-5.2 | glm-4.6v |
-| explore | grok-code-fast-1 | minimax-m2.5 | claude-haiku-4-5 | gpt-5-nano |
-| metis | claude-opus-4-6 | gpt-5.2 | kimi-k2.5 | gemini-3.1-pro |
-| momus | gpt-5.2 | claude-opus-4-6 | gemini-3.1-pro | — |
-| atlas | kimi-k2.5 | claude-sonnet-4-6 | gpt-5.2 | — |
-| prometheus | claude-opus-4-6 | kimi-k2.5 | gpt-5.2 | gemini-3.1-pro |
-| multimodal-looker | gemini-3-flash | minimax-m2.5 | big-pickle | — |
+| Agent | Primary Model | Fallback |
+|-------|---------------|----------|
+| sisyphus | claude-opus-4-5 | glm-5 |
+| hephaestus | gpt-5.3-codex | glm-5 |
+| oracle | claude-opus-4-5 | glm-5 |
+| librarian | glm-5 | glm-5 |
+| explore | glm-5 | glm-5 |
+| metis | claude-opus-4-5 | glm-5 |
+| momus | claude-opus-4-5 | glm-5 |
+| atlas | glm-5 | glm-5 |
+| sisyphus-junior | gpt-5.3-codex | — |
+| multimodal-looker | gemini-3-flash-preview | glm-5 |
 
 ### When to Use Each Agent
 
@@ -402,7 +463,6 @@ If a task decomposes into 4 independent units, spawn 4 agents simultaneously —
 | **sisyphus** | Orchestration, delegation decisions, session management | Deep implementation work (use hephaestus) |
 | **hephaestus** | Complex algorithm implementation, architecture refactoring, hard debugging | Trivial changes (use quick), UI work (use visual-engineering) |
 | **atlas** | Todo tracking, wisdom accumulation, session continuity | Deep research (use explore), Implementation (use category dispatch) |
-| **prometheus** | Requirement discovery, Socratic planning, scope clarification | Clear requirements (skip to planning), Implementation work |
 | **oracle** | Architecture decisions, multi-system tradeoffs, debugging strategies | Implementation (read-only), Simple questions |
 | **metis** | Pre-planning gap analysis, identifying hidden assumptions | Clear requirements, Implementation work |
 | **momus** | Plan completeness review, verification before execution | Implementation, Already-reviewed plans |
@@ -682,8 +742,8 @@ If the user's approach seems problematic:
 **HARD RULE — /planning Before ALL Implementation** — EVERY feature, fix, or non-trivial change MUST go through `/planning` first. The plan MUST be reviewed and approved by the user before ANY implementation begins. No exceptions. No "quick fixes." No "I'll just do this one thing." The sequence is ALWAYS: `/planning` → user reviews plan → user approves → **choose execution method**. Jumping straight to code is a VIOLATION even if the task seems simple.
 
 **MODEL TIERS — Use the right model for the task:**
-- **Opus** (`claude-opus-4-6`) → thinking & planning: `/mvp`, `/prd`, `/planning`, `/council`, architecture decisions
-- **Sonnet** (`claude-sonnet-4-6`) → review & validation: `/code-review`, `/code-loop`, `/system-review`, `/pr`, `/final-review`
+- **Opus** (`claude-opus-4-6`) → orchestration & high-level decisions: `/mvp`, `/prd`, `/council`, architecture decisions
+- **Sonnet** (`claude-sonnet-4-6`) → planning & review: `/planning`, `/code-review`, `/code-loop`, `/system-review`, `/pr`, `/final-review`
 - **Haiku** (`claude-haiku-4-5-20251001`) → retrieval & light tasks: `/prime`, RAG queries, `/commit`, quick checks
 - **Execution Agent** → implementation: YOU choose (manual, Codex, aider, Claude Code, etc.)
 
@@ -975,8 +1035,8 @@ System configuration and reusable assets:
 
 | Model | Role | Commands |
 |-------|------|----------|
-| **Claude Opus** | Think / Plan | `/mvp`, `/prd`, `/planning`, `/council` |
-| **Claude Sonnet** | Review / Validate | `/code-review`, `/code-loop`, `/system-review`, `/pr`, `/final-review` |
+| **Claude Opus** | Orchestrate | `/mvp`, `/prd`, `/council` |
+| **Claude Sonnet** | Plan / Review | `/planning`, `/code-review`, `/code-loop`, `/system-review`, `/pr`, `/final-review` |
 | **Claude Haiku** | Retrieve / Light | `/prime`, `/commit`, RAG queries |
 | **Execution Agent** | Implement | `codex /execute`, `aider --file`, `dispatch(agent)`, OR manual implementation |
 
