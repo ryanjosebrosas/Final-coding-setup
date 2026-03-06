@@ -34,12 +34,27 @@ Used standalone for each feature or capability.
 
 Start by understanding what the user wants to build. This is interactive — a conversation, not automation.
 
+### One Question at a Time (MANDATORY)
+
+Do NOT batch multiple questions. Ask ONE question, wait for the answer, then ask the next. This prevents overwhelming the user and ensures each answer gets proper attention.
+
+**Anti-pattern (DO NOT DO):**
+> "What are we building? What's the most important thing? Any constraints?"
+
+**Correct pattern:**
+> "What are we building? Give me the short version."
+> *(wait for answer)*
+> "Got it. What's the single most important thing this needs to do?"
+> *(wait for answer)*
+> "Makes sense. What existing code should this integrate with?"
+
 ### Starting the conversation:
 - Ask: "What are we building? Give me the short version."
-- Listen, then ask 2-3 targeted follow-up questions:
+- Listen, then ask follow-up questions **one at a time**:
   - "What's the most important thing this needs to do?"
   - "What existing code should this integrate with?"
   - "Any constraints or preferences on how to build it?"
+- Prefer **multiple choice** when possible: "Should this A) integrate with existing auth, B) create new auth, or C) skip auth entirely?"
 
 If `$ARGUMENTS` is provided:
 - Summarize what you understand from the feature name/description
@@ -200,14 +215,60 @@ Interface Boundaries:
 For non-trivial architecture decisions where multiple approaches are viable:
 - "This has {N} valid approaches with real tradeoffs. Want to discuss before I pick one?"
 
-### 3c. Decide
+### 3c. Propose Approaches (MANDATORY — before deciding)
 
-Now — and only now — propose the approach. The decision must reference the analysis above, not gut feeling.
+Before committing to an approach, you MUST propose 2-3 alternatives with trade-offs. This forces exploration and surfaces options the user might prefer.
+
+```
+APPROACH OPTIONS
+================
+Option A (Recommended): {name}
+  Description: {2-3 sentences — specific, not vague}
+  Pros:
+    - {concrete benefit tied to analysis}
+    - {another benefit}
+  Cons:
+    - {concrete drawback}
+  Effort: {relative — Low/Medium/High}
+  Risk: {Low/Medium/High — reference 3b analysis}
+
+Option B: {name}
+  Description: {2-3 sentences}
+  Pros:
+    - {benefit}
+  Cons:
+    - {drawback}
+  Effort: {relative}
+  Risk: {level}
+
+Option C: {name} (if applicable)
+  Description: {2-3 sentences}
+  Pros:
+    - {benefit}
+  Cons:
+    - {drawback}
+  Effort: {relative}
+  Risk: {level}
+
+My Recommendation: Option {X}
+  Reasoning: {Why this is the best choice given the constraints from 3b. 
+  Reference specific findings: "Given the HIGH risk with Y and the dependency 
+  graph showing Z, Option A minimizes blast radius while staying consistent 
+  with existing patterns."}
+```
+
+**Checkpoint**: "Here are the options. I recommend Option {X} because {reason}. Which direction?"
+
+Wait for user to choose before proceeding to the decision.
+
+### 3d. Decide
+
+After user selects an approach, lock it in with full reasoning:
 
 ```
 APPROACH DECISION
 =================
-Chosen approach:
+Chosen approach: {Option X — name}
   {Describe the approach in 2-3 sentences. Be specific — not "use a service" but
    "create AuthService class in src/services/auth.ts with login(), logout(), refresh() methods,
    following the pattern from src/services/user.ts"}
@@ -221,13 +282,9 @@ Why this approach:
     src/services/user.ts:45-62 which this approach extends consistently."}
 
 Rejected alternatives:
-  Alternative A: {description}
-    Rejected because: {specific reason from analysis — not "it's worse" but "it increases
+  {Option Y}: Rejected because {specific reason from analysis — not "it's worse" but "it increases
     coupling between X and Y which the dependency graph shows is already a risk"}
-  Alternative B: {description}
-    Rejected because: {specific reason}
-  (If only one viable approach exists, state: "No viable alternatives identified —
-   the constraints from 3b make this the only workable approach because {reason}.")
+  {Option Z}: Rejected because {specific reason}
 
 Key tradeoff accepted:
   {What we're trading off. Every approach trades something. Be explicit.
@@ -236,9 +293,9 @@ Key tradeoff accepted:
    and is easier to test."}
 ```
 
-**Checkpoint**: Confirm the direction — "Lock in this approach? Or should we explore {specific alternative} more?"
+**Checkpoint**: "Locked in {Option X}. Moving to task decomposition."
 
-### 3d. Decompose
+### 3e. Decompose
 
 Break the chosen approach into tasks. The decomposition must justify each split.
 
@@ -291,36 +348,65 @@ Confidence: {X}/10
 By the end of Phase 3, the following are locked in and available for Phase 4:
 - **Synthesis** — distilled understanding of what we're building and why
 - **Analysis** — dependency graph, risks with mitigations, failure modes, interface boundaries
-- **Approach** — chosen approach with reasoning, rejected alternatives, accepted tradeoff
+- **Approach Options** — 2-3 alternatives with pros/cons/effort/risk (user chose one)
+- **Approach Decision** — chosen approach with reasoning, rejected alternatives, accepted tradeoff
 - **Decomposition** — task list with per-task justification, order rationale, confidence score
 
-Phase 4's preview draws directly from these: `Approach` → preview's "Approach" field, `Risks` from analysis → preview's "Risks" field, `Decomposition` → preview's "Estimated tasks" and "Mode" fields.
+Phase 4's preview draws directly from these: `Approach Decision` → preview's "Approach" field, `Risks` from analysis → preview's "Risks" field, `Decomposition` → preview's "Estimated tasks" and "Mode" fields.
 
 ---
 
-## Phase 4: Preview (Approval Gate)
+## Phase 4: Preview (Section-by-Section Approval)
 
-Before writing the full plan, show a **1-page preview**:
+Present the plan preview in digestible sections. Get approval after each section before moving on. This prevents dumping a wall of text and ensures the user actually reads and validates each part.
+
+### 4a. Overview Section
 
 ```
 PLAN PREVIEW: {spec-name}
 =============================
 
 What:      {1-line description}
-Approach:  {the locked-in approach}
+Approach:  {the locked-in approach from 3d}
 Files:     {create: X, modify: Y}
+```
+
+**Checkpoint**: "Does this overview match what you're expecting? [y/adjust]"
+
+### 4b. Architecture Section
+
+```
 Key decision: {the main architectural choice and why}
-Risks:     {top 1-2 risks}
-Tests:     {testing approach}
+Risks:     {top 1-2 risks from 3b analysis}
+Mitigations: {how we're handling those risks}
+```
+
+**Checkpoint**: "Architecture and risk assessment look right? [y/adjust]"
+
+### 4c. Implementation Section
+
+```
 Estimated tasks: {N tasks}
+Task breakdown:
+  1. {task 1 name} — {one-line scope}
+  2. {task 2 name} — {one-line scope}
+  ... (list all tasks)
 Mode:      {Task Briefs (N briefs, default) | Master + Sub-Plans (N phases, escape hatch)}
+Tests:     {testing approach}
 ```
 
+**Checkpoint**: "Task breakdown and testing approach work for you? [y/adjust]"
+
+### 4d. Final Approval
+
 ```
-Approve this direction to write the full plan? [y/n/adjust]
+Ready to write the full plan with {N} task briefs?
+[y] Proceed — write plan.md + task briefs
+[adjust] Let me change something first
+[n] Start over with different approach
 ```
 
-Only write the plan file after explicit approval.
+Only write the plan file after explicit "y" approval on all sections.
 
 ---
 
