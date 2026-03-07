@@ -64,15 +64,15 @@ Typical feature rhythm:
 
 ```mermaid
 flowchart LR
-    A[/prime] --> B[/mvp]
-    B --> C[/prd]
-    C --> D[/pillars]
-    D --> E[/decompose]
-    E --> F[/planning]
-    F --> G[/execute\ntask 1..N]
-    G --> H[/code-loop]
-    H --> I[/commit]
-    I --> J[/pr]
+    A["/prime"] --> B["/mvp"]
+    B --> C["/prd"]
+    C --> D["/pillars"]
+    D --> E["/decompose"]
+    E --> F["/planning"]
+    F --> G["/execute<br/>task 1..N"]
+    G --> H["/code-loop"]
+    H --> I["/commit"]
+    I --> J["/pr"]
 
     style A fill:#4A90D9,color:#fff
     style F fill:#7B68EE,color:#fff
