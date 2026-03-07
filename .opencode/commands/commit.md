@@ -72,7 +72,26 @@ git show --stat
 
 Append to memory.md: session note, any lessons/gotchas/decisions discovered. Keep entries 1-2 lines each. Don't repeat existing entries. Skip if memory.md doesn't exist.
 
-### 5.5. Pipeline Handoff Write (required)
+### 5.5. Save to Supermemory (if applicable)
+
+After a successful commit, save a memory of what was done and any lessons learned:
+
+**REST API**:
+```bash
+# Read API key
+cat ~/.config/opencode/supermemory.jsonc
+# Then save:
+curl -s -X POST https://api.supermemory.ai/v4/memories \
+  -H "Authorization: Bearer {api_key}" \
+  -H "Content-Type: application/json" \
+  -d '{"memories":[{"content":"{feature} committed: {commit message}. {any gotchas or lessons from this session, 1-2 sentences max}"}],"containerTag":"opencode_user"}'
+```
+
+Only save if there is something genuinely useful to remember (decisions made, gotchas encountered, non-obvious patterns used). Skip if the commit is routine and adds no new information.
+
+**If supermemory is unavailable**: Skip silently.
+
+### 5.6. Pipeline Handoff Write (required)
 
 After successful commit, overwrite `.agents/context/next-command.md`:
 

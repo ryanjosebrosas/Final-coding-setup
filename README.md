@@ -163,25 +163,25 @@ opencode run "/prime"
 
 Interactive discovery for the product big idea. Runs a Socratic conversation to extract, pressure-test, and articulate the product vision. Produces `mvp.md` as the compass for everything downstream.
 
-Model: `claude-opus-4-6`
+Model: `claude-opus-4-5`
 
 #### `/prd`
 
 Transforms MVP direction into a full Product Requirements Document: architecture, tech stack, API contracts, data models, and implementation phases.
 
-Model: `claude-opus-4-6`
+Model: `claude-opus-4-5`
 
 #### `/pillars`
 
 Extracts infrastructure pillars from the PRD and orders them with dependency gates. Tells you what must be built first and what criteria must pass before moving on.
 
-Model: `claude-opus-4-6`
+Model: `claude-opus-4-5`
 
 #### `/decompose`
 
 Per-pillar deep research that produces planning-ready spec files. Run once per pillar before feature-level planning starts.
 
-Model: `claude-opus-4-6`
+Model: `claude-opus-4-5`
 
 ---
 
@@ -276,15 +276,15 @@ Agents are registered in TypeScript with explicit model assignments and permissi
 | Agent | Model | Role | Permissions |
 |---|---|---|---|
 | Sisyphus | `claude-sonnet-4-6` | Main orchestrator, routing and workflow control | Full |
-| Oracle | `claude-opus-4-6` | Read-only architecture consultant for hard decisions | Read-only |
+| Oracle | `openai/gpt-5.2` | Read-only architecture consultant for hard decisions | Read-only |
 | Metis | `claude-sonnet-4-6` | Pre-planning gap analyzer, finds hidden assumptions | Read-only |
-| Momus | `claude-opus-4-6` | Plan quality reviewer, rejects vague plans | Read-only |
-| Hephaestus | `gpt-5.3-codex` | Deep autonomous worker for logic-heavy tasks | Full |
-| Sisyphus-Junior | `gpt-5.3-codex` | Category-dispatched executor for task() calls | Full (no delegation) |
-| Atlas | `glm-5:cloud` | Todo and progress orchestration across sessions | Full (no delegation) |
-| Explore | `glm-5:cloud` | Internal codebase grep and pattern discovery | Read-only |
-| Librarian | `glm-5:cloud` | External documentation and OSS example search | Read-only |
-| Multimodal-Looker | `gemini-3-flash-preview` | PDF, image, and diagram analysis | Vision-only |
+| Momus | `openai/gpt-5.2` | Plan quality reviewer, rejects vague plans | Read-only |
+| Hephaestus | `openai/gpt-5.3-codex` | Deep autonomous worker for logic-heavy tasks | Full |
+| Sisyphus-Junior | `openai/gpt-5.3-codex` | Category-dispatched executor for task() calls | Full (no delegation) |
+| Atlas | `ollama/glm-5:cloud` | Todo and progress orchestration across sessions | Full (no delegation) |
+| Explore | `ollama/glm-5:cloud` | Internal codebase grep and pattern discovery | Read-only |
+| Librarian | `ollama/glm-5:cloud` | External documentation and OSS example search | Read-only |
+| Multimodal-Looker | `ollama/glm-5:cloud` | PDF, image, and diagram analysis | Vision-only |
 
 Each agent is optimized for a specific job. Routing work to the right agent reduces token waste and improves output consistency. Explore and Librarian are cheap background agents — fire them in parallel for research. Oracle and Momus are expensive consultants — use them for decisions, not implementation. Hephaestus is the heavy implementation worker — use it when oracle has diagnosed an issue and actual code changes need to be made, or when a task is too complex for category dispatch alone.
 
@@ -295,9 +295,9 @@ graph TD
     end
 
     subgraph Consultants["🔍 Consultants — Read-only"]
-        O[Oracle\nclaude-opus-4-6\nArchitecture]
+        O[Oracle\ngpt-5.2\nArchitecture]
         M[Metis\nclaude-sonnet-4-6\nGap analysis]
-        MO[Momus\nclaude-opus-4-6\nPlan review]
+        MO[Momus\ngpt-5.2\nPlan review]
     end
 
     subgraph Workers["⚙️ Workers — Full permissions"]
@@ -309,7 +309,7 @@ graph TD
     subgraph Research["🔎 Research — Read-only"]
         EX[Explore\nglm-5:cloud\nInternal grep]
         LB[Librarian\nglm-5:cloud\nExternal docs]
-        ML[Multimodal-Looker\ngemini-3-flash\nPDF / images]
+        ML[Multimodal-Looker\nglm-5:cloud\nPDF / images]
     end
 
     S -->|consults| O
@@ -450,18 +450,21 @@ Model mapping is defined in `.opencode/oh-my-opencode.jsonc`.
 ```text
 Agents:
   sisyphus            ->  anthropic/claude-sonnet-4-6
-  oracle              ->  anthropic/claude-opus-4-6
-  momus               ->  anthropic/claude-opus-4-6
+  oracle              ->  openai/gpt-5.2
+  momus               ->  openai/gpt-5.2
   metis               ->  anthropic/claude-sonnet-4-6
   hephaestus          ->  openai/gpt-5.3-codex
   sisyphus-junior     ->  openai/gpt-5.3-codex
   librarian           ->  ollama/glm-5:cloud
   explore             ->  ollama/glm-5:cloud
   atlas               ->  ollama/glm-5:cloud
-  multimodal-looker   ->  ollama-cloud/gemini-3-flash-preview
+  multimodal-looker   ->  ollama/glm-5:cloud
 
 Categories (task() dispatch):
-  all categories      ->  openai/gpt-5.3-codex
+  visual-engineering  ->  ollama/glm-5:cloud
+  quick               ->  ollama/glm-5:cloud
+  writing             ->  ollama/glm-5:cloud
+  all other           ->  openai/gpt-5.3-codex
 ```
 
 ---
@@ -542,14 +545,14 @@ The body of each command file is the actual instruction set the model follows wh
 {
   "agents": {
     "sisyphus": { "model": "anthropic/claude-sonnet-4-6" },
-    "oracle":   { "model": "anthropic/claude-opus-4-6" },
+    "oracle":   { "model": "openai/gpt-5.2" },
     "librarian": { "model": "ollama/glm-5:cloud" }
     // ...
   }
 }
 ```
 
-These override the default model each named agent uses. The agent names here correspond directly to the agent definitions in `.opencode/agents/registry.ts`. When Sisyphus delegates work to Oracle via `task(subagent_type="oracle")`, OpenCode looks up `oracle` in this config and uses `claude-opus-4-6`.
+These override the default model each named agent uses. The agent names here correspond directly to the agent definitions in `.opencode/agents/registry.ts`. When Sisyphus delegates work to Oracle via `task(subagent_type="oracle")`, OpenCode looks up `oracle` in this config and uses `openai/gpt-5.2`.
 
 **2. Category model assignments**
 
@@ -607,7 +610,7 @@ sequenceDiagram
     participant OC as OpenCode CLI
     participant AGENTS as AGENTS.md
     participant CMR as command-model-router<br/>(hook)
-    participant CMD as /planning command<br/>(claude-opus-4-6)
+    participant CMD as /planning command<br/>(claude-opus-4-5)
     participant EX as explore subagent<br/>(glm-5:cloud)
     participant MT as metis subagent<br/>(claude-sonnet-4-6)
     participant FS as .agents/features/
@@ -617,7 +620,7 @@ sequenceDiagram
     OC->>AGENTS: load → inject as system prompt
     OC->>OC: discover .opencode/commands/, hooks/, oh-my-opencode.jsonc
     OC->>CMR: chat.message fires
-    CMR->>CMD: read planning.md frontmatter → override model to claude-opus-4-6
+    CMR->>CMD: read planning.md frontmatter → override model to claude-opus-4-5
     CMD->>CMD: Phase 1-2: intent classification + discovery interview
     CMD->>EX: task(subagent_type="explore") — search codebase
     EX-->>CMD: findings returned
@@ -664,21 +667,306 @@ opencode run "/execute .agents/features/user-auth/plan.md"
 
 Use this exact sequence for a new project adopting the framework.
 
-**Step 0: Install oh-my-opencode (once per machine)**
+### New machine setup (for LLM agents)
 
-This framework runs on top of [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) — the multi-agent harness that powers OpenCode with orchestration, model routing, and hook support.
+If you are an LLM agent setting up this system on a new machine, follow every step below in order. Each step is self-contained and tells you exactly what to do. Do not skip steps. Do not assume anything is already installed.
+
+**Platform assumptions:** Arch Linux (or any Arch-based distro), WSL2 or native Linux. Adapt `pacman` commands to your package manager if different (`apt`, `brew`, etc.). All config paths use `~/.config/opencode/`.
+
+---
+
+#### Step 1 — Install OpenCode CLI
 
 ```bash
-bunx oh-my-opencode install
+curl -fsSL https://opencode.ai/install | bash
 ```
 
-Follow the prompts to configure your model providers (Claude, OpenAI, Gemini, etc.). Then clone this repo into your project directory — OpenCode picks up `AGENTS.md` and `.opencode/` automatically on launch.
+Verify: `opencode --version` should print a version number.
+
+---
+
+#### Step 2 — Install oh-my-opencode (multi-agent harness)
+
+Fetch the installation guide and follow every step in it:
+
+```bash
+curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads/dev/docs/guide/installation.md
+```
+
+This will walk you through:
+- Installing the plugin (`bunx oh-my-opencode install`)
+- Connecting providers (Anthropic, OpenAI, Google, etc.)
+- Configuring model assignments in `~/.config/opencode/oh-my-opencode.json`
+
+After install, verify the plugin is in `~/.config/opencode/opencode.json`:
+```json
+{ "plugin": ["oh-my-opencode@latest"] }
+```
+
+---
+
+#### Step 3 — Install opencode-supermemory (persistent cross-session memory)
+
+```bash
+bunx opencode-supermemory@latest install --no-tui
+```
+
+Then add your API key to `~/.config/opencode/supermemory.jsonc` and add this to `~/.config/opencode/oh-my-opencode.json`:
+
+```json
+{ "disabled_hooks": ["anthropic-context-window-limit-recovery"] }
+```
+
+Verify: `cat ~/.config/opencode/supermemory.jsonc` should show an `sm_...` API key.
+
+---
+
+#### Step 4 — Set up Anthropic account rotation (optional, requires multiple Max subscriptions)
+
+This allows automatic switching between Claude accounts before rate limits hit.
+
+**4a. Add plugin to `~/.config/opencode/opencode.json`:**
+
+```json
+{ "plugin": ["oh-my-opencode@latest", "opencode-supermemory", "oc-anthropic-multi-account@latest"] }
+```
+
+**4b. Disable the built-in Anthropic plugin** (add to `~/.bashrc`):
+
+```bash
+export OPENCODE_DISABLE_DEFAULT_PLUGINS=true
+```
+
+**4c. Install Linux-native bun** (needed for the account CLI — do not use Windows bun in WSL):
+
+```bash
+# Install unzip first if missing
+pacman -S --noconfirm unzip   # or: apt install unzip
+
+# Install Linux bun
+curl -fsSL https://bun.sh/install | bash
+# Binary is at ~/.bun/bin/bun
+```
+
+Add to `~/.bashrc`:
+```bash
+export BUN_BINARY="$HOME/.bun/bin/bun"
+export PATH="$HOME/.bun/bin:$PATH"
+```
+
+**4d. Clone the account management CLI:**
+
+```bash
+git clone https://github.com/gaboe/oc-anthropic-multi-account.git ~/oc-anthropic-multi-account
+cd ~/oc-anthropic-multi-account
+~/.bun/bin/bun install
+~/.bun/bin/bun add @effect/platform@latest @effect/cluster@latest @effect/printer@latest @effect/printer-ansi@latest
+```
+
+**4e. Add each Anthropic account via OAuth** (one per Max subscription):
+
+```bash
+cd ~/oc-anthropic-multi-account
+~/.bun/bin/bun src/cli.ts add primary    # first account
+~/.bun/bin/bun src/cli.ts add fallback1  # additional accounts
+```
+
+Check status:
+```bash
+~/.bun/bin/bun src/cli.ts usage
+```
+
+Tokens stored at: `~/.config/opencode/anthropic-multi-account-accounts.json`
+
+---
+
+#### Step 5 — Set up Google Antigravity rotation (optional, ToS risk — read warning)
+
+> **⚠️ Warning:** This uses Google's internal IDE endpoint via OAuth. Multiple users have reported account bans. You accept all risk by proceeding.
+
+This gives access to Claude Opus + Gemini 3 models via Google's internal quota, with multi-account rotation.
+
+**5a. Add plugin to `~/.config/opencode/opencode.json`:**
+
+```json
+{
+  "plugin": ["oh-my-opencode@latest", "opencode-supermemory", "oc-anthropic-multi-account@latest", "opencode-antigravity-auth@latest"],
+  "provider": {
+    "google": {
+      "models": {
+        "antigravity-claude-opus-4-6-thinking": {
+          "name": "Claude Opus 4.6 Thinking (Antigravity)",
+          "limit": { "context": 200000, "output": 64000 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "variants": {
+            "low": { "thinkingConfig": { "thinkingBudget": 8192 } },
+            "max": { "thinkingConfig": { "thinkingBudget": 32768 } }
+          }
+        },
+        "antigravity-claude-sonnet-4-6": {
+          "name": "Claude Sonnet 4.6 (Antigravity)",
+          "limit": { "context": 200000, "output": 64000 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] }
+        },
+        "antigravity-gemini-3-pro": {
+          "name": "Gemini 3 Pro (Antigravity)",
+          "limit": { "context": 1048576, "output": 65535 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "variants": { "low": { "thinkingLevel": "low" }, "high": { "thinkingLevel": "high" } }
+        },
+        "antigravity-gemini-3-flash": {
+          "name": "Gemini 3 Flash (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+          "variants": { "minimal": { "thinkingLevel": "minimal" }, "low": { "thinkingLevel": "low" }, "medium": { "thinkingLevel": "medium" }, "high": { "thinkingLevel": "high" } }
+        },
+        "gemini-3-flash-preview": {
+          "name": "Gemini 3 Flash Preview (Gemini CLI)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] }
+        },
+        "gemini-3-pro-preview": {
+          "name": "Gemini 3 Pro Preview (Gemini CLI)",
+          "limit": { "context": 1048576, "output": 65535 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] }
+        },
+        "gemini-3.1-pro-preview": {
+          "name": "Gemini 3.1 Pro Preview (Gemini CLI)",
+          "limit": { "context": 1048576, "output": 65535 },
+          "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] }
+        }
+      }
+    }
+  }
+}
+```
+
+**5b. Disable built-in Google auth** in `~/.config/opencode/oh-my-opencode.json`:
+
+```json
+{ "google_auth": false }
+```
+
+**5c. Add each Google account** (restart opencode first so the plugin installs, then):
+
+```bash
+opencode auth login   # choose "OAuth with Google (Antigravity)"
+opencode auth login   # repeat for each additional Google account
+```
+
+---
+
+#### Step 6 — Install OpenChamber (rich web UI for OpenCode)
+
+OpenChamber provides a browser-based UI with diff viewer, GitHub integration, branchable chat timeline, and mobile access.
+
+**6a. Install prerequisites:**
+
+```bash
+# Node.js 20+ required
+node --version   # must be 20+
+
+# Install pnpm if missing
+npm install -g pnpm
+pnpm setup
+source ~/.bashrc
+```
+
+**6b. Install OpenChamber:**
+
+```bash
+pnpm add -g @openchamber/web
+```
+
+If you get "No global bin directory" error:
+```bash
+pnpm setup && source ~/.bashrc && pnpm add -g @openchamber/web
+```
+
+**6c. Rebuild native terminal module:**
+
+```bash
+# Find and rebuild node-pty
+find ~/.local/share/pnpm -name "node-pty" -type d | head -1 | xargs -I{} sh -c 'cd {} && npm rebuild'
+```
+
+**6d. Add startup helpers to `~/.bashrc`:**
+
+```bash
+# Linux-native bun (required — do not rely on Windows bun in PATH for WSL)
+export BUN_BINARY="$HOME/.bun/bin/bun"
+export PATH="$HOME/.bun/bin:$PATH"
+
+# OpenChamber aliases
+alias oc-ui='nohup bash -c "export BUN_BINARY=\$HOME/.bun/bin/bun; export OPENCODE_HOST=http://localhost:4096; export OPENCODE_SKIP_START=true; openchamber --port 3001" > /tmp/openchamber.log 2>&1 & echo "OpenChamber on http://localhost:3001 (PID: \$!)"'
+alias oc-ui-stop='pkill -f "openchamber" && echo "stopped"'
+alias oc-ui-log='tail -f /tmp/openchamber.log'
+```
+
+**6e. Start OpenChamber:**
+
+```bash
+source ~/.bashrc
+oc-ui
+```
+
+Then open `http://localhost:3001` in your browser (on WSL: use Windows browser, localhost is bridged automatically).
+
+> **Note on daemon mode:** `--daemon` flag does not work in WSL due to IPC process detachment limitations. Use the `nohup` alias above instead.
+
+---
+
+#### Step 7 — Clone this repo and open
 
 ```bash
 git clone https://github.com/ryanjosebrosas/autonomous-coding-system-final.git
 cd autonomous-coding-system-final
-opencode   # starts the TUI with the full system loaded
+opencode   # TUI with full system loaded
+# or: oc-ui  then open http://localhost:3001
 ```
+
+---
+
+#### Step 8 — Initialize supermemory
+
+Inside opencode, run:
+
+```
+/supermemory-init
+```
+
+This indexes the codebase into persistent memory so every future session starts with context.
+
+---
+
+#### Verification checklist
+
+After completing all steps, verify:
+
+```bash
+opencode --version                          # opencode installed
+openchamber --version                       # openchamber installed
+cat ~/.config/opencode/opencode.json | grep plugin   # plugins listed
+cat ~/.config/opencode/oh-my-opencode.json | grep google_auth   # google_auth: false
+cat ~/.config/opencode/supermemory.jsonc    # API key present
+echo $OPENCODE_DISABLE_DEFAULT_PLUGINS      # true
+echo $BUN_BINARY                            # ~/.bun/bin/bun
+curl -s http://localhost:3001/health        # {"status":"ok",...} after oc-ui
+```
+
+---
+
+#### Config file summary
+
+| File | Purpose |
+|---|---|
+| `~/.config/opencode/opencode.json` | Plugin list, providers, model definitions, MCP servers |
+| `~/.config/opencode/oh-my-opencode.json` | Agent model assignments, category routing, tmux, hooks |
+| `~/.config/opencode/supermemory.jsonc` | Supermemory API key |
+| `~/.config/opencode/anthropic-multi-account-accounts.json` | Anthropic OAuth tokens (auto-created by CLI) |
+| `~/.config/opencode/antigravity-accounts.json` | Google OAuth tokens (auto-created on login) |
+| `~/.bashrc` | `OPENCODE_DISABLE_DEFAULT_PLUGINS`, `BUN_BINARY`, `oc-ui` alias |
+| `~/oc-anthropic-multi-account/` | Anthropic account management CLI (cloned repo) |
 
 **Step 1: Start every session with /prime**
 

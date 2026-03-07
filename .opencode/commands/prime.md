@@ -36,6 +36,29 @@ Review these changes before proceeding. Run /commit to save progress, or /prime 
 
 ---
 
+## Step 0.5: Query Supermemory
+
+Before loading project context, query supermemory for relevant memories from past sessions.
+
+Use the supermemory MCP tool if available, or fall back to the REST API:
+
+**REST API (fallback)**:
+```bash
+# Read API key
+cat ~/.config/opencode/supermemory.jsonc
+# Then query:
+curl -s -X POST https://api.supermemory.ai/v4/memories/search \
+  -H "Authorization: Bearer {api_key}" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "project context preferences workflow", "containerTag": "opencode_user", "limit": 5}'
+```
+
+**If memories found**: Summarize relevant ones in a "Supermemory Context" section at the end of the Step 4 report (preferences, past decisions, gotchas from prior sessions).
+
+**If supermemory is unavailable or returns no results**: Skip silently — do not report an error.
+
+---
+
 ## Step 1: Detect Context Mode
 
 Check for code directories using Glob:
@@ -249,6 +272,11 @@ Scan `.agents/features/*/` for non-`.done.md` artifacts. For each feature direct
 - **Memory Health**: {if last session date is >7 days ago, warn "Stale — last updated {date}". Otherwise "Fresh"}
 Otherwise: "No memory.md found"}
 
+## Supermemory Context
+{If memories found in Step 0.5:
+- {bullet list of relevant memories — preferences, past decisions, gotchas}
+Otherwise: omit this section}
+
 ## Pending Work
 {If pending work found in Step 3.5:
 - **[handoff]** {Next Command} ← from last session ({Last Command} → {feature})
@@ -316,6 +344,11 @@ Otherwise: "No memory.md found"}
 - **[blocked]** {feature} — blocked: {reason from Next Command field}
 (Show only lines that apply. Handoff line first if present.)
 Otherwise: "No pending work found."}
+
+## Supermemory Context
+{If memories found in Step 0.5:
+- {bullet list of relevant memories — preferences, past decisions, gotchas}
+Otherwise: omit this section}
 
 ## Archon Status
 {If Archon MCP connected:
