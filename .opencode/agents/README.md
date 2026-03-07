@@ -23,11 +23,12 @@ Both agents have `archonEnabled: true` for RAG integration when Archon MCP is co
 
 | Agent | Purpose | Invocation |
 |-------|---------|------------|
+| `prometheus` | Strategic planning with interview mode — runs the full `/planning` 7-phase process, writes `plan.md` + `task-N.md` | `task(subagent_type="prometheus", load_skills=["planning-methodology"], ...)` |
 | `oracle` | Architecture decisions, debugging help, multi-system tradeoffs | `task(subagent_type="oracle", ...)` |
 | `metis` | Pre-planning gap analysis, hidden assumption detection | `task(subagent_type="metis", ...)` |
 | `momus` | Plan completeness review, verification before execution | `task(subagent_type="momus", ...)` |
 
-> **Note**: Prometheus was merged into `/planning` command. Use `/planning` for requirement discovery and Socratic interview workflows.
+> **Planning Flow**: Use `prometheus` for full strategic planning with interview mode. `prometheus` delegates to `metis` (gap analysis) and optionally `momus` (plan quality review) as part of its process.
 
 ## Execution Agents
 

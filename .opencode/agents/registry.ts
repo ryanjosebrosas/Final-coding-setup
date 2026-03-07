@@ -90,7 +90,9 @@ export const FALLBACK_CHAINS = {
   atlas: ["ollama/glm-5:cloud"],
   librarian: ["ollama/glm-5:cloud"],
   explore: ["ollama/glm-5:cloud"],
+  prometheus: ["ollama/glm-5:cloud"],
   multimodalLooker: ["ollama/glm-5:cloud"],
+  tmuxMaster: ["ollama/glm-5:cloud"],
 
   // Inherited from category dispatch
   sisyphusJunior: [],
@@ -151,6 +153,19 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     permissions: PERMISSIONS.readOnly,
     fallbackChain: FALLBACK_CHAINS.oracle,
     deniedTools: ["write", "edit", "task", "call_omo_agent"],
+  },
+
+  prometheus: {
+    name: "prometheus",
+    displayName: "Prometheus — Strategic Planner",
+    description: "Strategic planner with interview mode. Runs the full /planning process: intent classification, discovery interview, codebase research, design reasoning, task decomposition, and gap analysis. Produces plan.md + task-N.md artifacts.",
+    category: "unspecified-high",
+    model: "anthropic/claude-sonnet-4-6",
+    temperature: 0.1,
+    mode: "subagent",
+    permissions: PERMISSIONS.full,
+    fallbackChain: FALLBACK_CHAINS.prometheus,
+    deniedTools: [],
   },
 
   metis: {
@@ -220,6 +235,26 @@ export const AGENT_REGISTRY: Record<string, AgentMetadata> = {
     archonEnabled: true,
   },
 
+  "tmux-master": {
+    name: "tmux-master",
+    displayName: "Tmux-Master — Terminal Multiplexer",
+    description: "Manages tmux sessions, windows, and panes. Use for interactive processes, REPLs, debuggers, TUI apps, long-running commands, and parallel terminal workflows.",
+    category: "unspecified-low",
+    model: "ollama/glm-5:cloud",
+    temperature: 0.1,
+    mode: "subagent",
+    permissions: {
+      readFile: false,
+      writeFile: false,
+      editFile: false,
+      bash: true,
+      grep: false,
+      task: false,
+    },
+    fallbackChain: FALLBACK_CHAINS.tmuxMaster,
+    deniedTools: ["write", "edit", "read", "grep", "task", "call_omo_agent"],
+  },
+
   "multimodal-looker": {
     name: "multimodal-looker",
     displayName: "Multimodal-Looker — PDF/Image Analysis",
@@ -276,6 +311,7 @@ export const AGENT_NAMES: AgentName[] = [
   "sisyphus",
   "hephaestus",
   "atlas",
+  "prometheus",
   "oracle",
   "metis",
   "momus",
@@ -283,4 +319,5 @@ export const AGENT_NAMES: AgentName[] = [
   "librarian",
   "explore",
   "multimodal-looker",
+  "tmux-master",
 ] as const

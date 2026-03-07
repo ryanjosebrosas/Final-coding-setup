@@ -85,19 +85,21 @@ const SUMMARIES: Record<string, AgentSummary> = {
   prometheus: {
     name: "Prometheus",
     category: "unspecified-high",
-    oneLiner: "Interview planner that discovers requirements through questions",
+    oneLiner: "Strategic planner with interview mode — runs the full /planning process and writes plan artifacts",
     useWhen: [
-      "Starting a new feature",
-      "Requirements are unclear",
-      "Need to understand priorities",
+      "Starting a new feature (requirements discovery + plan generation)",
+      "Requirements are unclear or ambiguous",
+      "Need structured 7-phase planning with Metis gap analysis",
+      "Plan review is needed before execution",
     ],
     avoidWhen: [
-      "Clear explicit requirements",
-      "Bug fixes with known cause",
+      "Clear explicit requirements with a plan already written",
+      "Bug fixes with a known cause and trivial scope",
+      "Trivial single-file changes",
     ],
-    model: "Claude Opus 4.5",
-    readOnly: true,
-    canDelegate: false,
+    model: "Claude Sonnet 4.6",
+    readOnly: false,
+    canDelegate: true,
   },
   
   oracle: {
